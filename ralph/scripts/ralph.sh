@@ -178,7 +178,7 @@ detect_already_complete() {
     local agent_output=$(tail -n +$((start_line + 1)) "$LOG_FILE" 2>/dev/null)
 
     # Patterns that indicate pre-completion
-    if echo "$agent_output" | grep -qi "is functionally complete\|already complete\|work is already done\|no further implementation.*required\|already implemented"; then
+    if echo "$agent_output" | grep -qi "is functionally complete\|already complete\|work is already done\|no further implementation.*required\|already implemented\|already present\|was already\|has been successfully completed\|implementation.*already.*present"; then
         return 0
     fi
 
