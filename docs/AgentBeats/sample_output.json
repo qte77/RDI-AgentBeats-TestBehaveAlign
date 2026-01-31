@@ -1,0 +1,80 @@
+{
+  "participants": {
+    "agent": "019b4d08-d84c-7a00-b2ec-4905ef7afc96"
+  },
+  "results": [
+    {
+      "pass_rate": 85.0,
+      "time_used": 350.0,
+      "max_score": 100,
+      "score": 85.0,
+      "domain": "coordination",
+      "task_rewards": {
+        "overall_score": 0.85,
+        "graph_density": 0.45,
+        "coordination_quality": 1.0
+      },
+      "detail": {
+        "overall_score": 0.85,
+        "reasoning": "Agents demonstrated efficient task delegation with clear communication patterns. Response times were consistently low and task handoffs were well-coordinated.",
+        "coordination_quality": "high",
+        "strengths": [
+          "Fast response times",
+          "Clear delegation patterns",
+          "No errors in communication",
+          "Efficient task distribution"
+        ],
+        "weaknesses": [
+          "Could optimize parallel execution"
+        ],
+        "graph_metrics": {
+          "degree_centrality": {
+            "step-001": 0.67,
+            "step-002": 0.33,
+            "step-003": 0.33
+          },
+          "betweenness_centrality": {
+            "step-001": 0.5,
+            "step-002": 0.0,
+            "step-003": 0.0
+          },
+          "closeness_centrality": {
+            "step-001": 1.0,
+            "step-002": 0.67,
+            "step-003": 0.67
+          },
+          "eigenvector_centrality": {
+            "step-001": 0.71,
+            "step-002": 0.5,
+            "step-003": 0.5
+          },
+          "pagerank": {
+            "step-001": 0.45,
+            "step-002": 0.28,
+            "step-003": 0.28
+          },
+          "graph_density": 0.45,
+          "clustering_coefficient": 0.0,
+          "connected_components": 1,
+          "average_path_length": 1.33,
+          "diameter": 2,
+          "bottlenecks": [],
+          "has_bottleneck": false,
+          "isolated_agents": [],
+          "over_centralized": false,
+          "coordination_quality": "high"
+        },
+        "latency_metrics": {
+          "avg_latency": 150.5,
+          "p50_latency": 120.0,
+          "p95_latency": 280.0,
+          "p99_latency": 350.0,
+          "min_latency": 45.0,
+          "max_latency": 420.0,
+          "total_steps": 10,
+          "slowest_step_id": "step-007"
+        }
+      }
+    }
+  ]
+}

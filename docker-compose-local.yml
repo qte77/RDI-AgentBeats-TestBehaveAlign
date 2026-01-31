@@ -1,0 +1,53 @@
+# Docker Compose configuration for local testing
+#
+# This configuration runs both the green agent (assessor) and
+# purple agent (assessee) locally for integration testing.
+#
+# Port Configuration (aligns with settings.py defaults):
+#   Purple: host 9010 → container 9010
+#   Green:  host 9009 → container 9009
+#
+# Usage:
+#   docker-compose -f docker-compose-local.yml up -d    # Start both agents
+#   docker-compose -f docker-compose-local.yml ps       # Check status
+#   docker-compose -f docker-compose-local.yml logs -f  # View logs
+#   docker-compose -f docker-compose-local.yml logs green 2>&1 | tail -100
+#   docker-compose -f docker-compose-local.yml down     # Stop and remove
+
+services:
+  purple:
+    build:
+      context: .
+      dockerfile: Dockerfile.purple
+    platform: linux/amd64
+    ports:
+      - "9010:9010"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=9010
+    networks:
+      - agentbeats
+    container_name: purple
+    restart: unless-stopped
+
+  green:
+    build:
+      context: .
+      dockerfile: Dockerfile.green
+    platform: linux/amd64
+    ports:
+      - "9009:9009"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=9009
+      - PURPLE_AGENT_URL=http://purple:9010
+    networks:
+      - agentbeats
+    container_name: green
+    restart: unless-stopped
+    depends_on:
+      - purple
+
+networks:
+  agentbeats:
+    driver: bridge
