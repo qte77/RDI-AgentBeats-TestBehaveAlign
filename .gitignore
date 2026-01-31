@@ -1,0 +1,65 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# environment
+.venv/
+*.env
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Testing
+.pytest_cache/
+pytest-of-vscode/
+.coverage/
+.coverage
+
+# Logs
+*.log
+logs/
+
+# Traces
+scalene-profiles
+profile.html
+profile.json
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE specific files (adjust as needed)
+.idea/
+.vscode/
+.idea
+.vscode
+
+# mkdocs
+reference/
+site/
+
+# linting
+.ruff_cache/
+.mypy_cache/
+.complexipy_cache/
+
+# Platform runtime output (keep directory via .gitkeep)
+output/*.json
+output/*.log
+
+
+# configs (created by Claude Code sandbox)
+.bash_profile
+.bashrc
+.gitconfig
+.gitmodules
+.mcp.json
+.profile
+.ripgreprc
+.zprofile
+.zshrc
+agents
+commands
+settings.local.json

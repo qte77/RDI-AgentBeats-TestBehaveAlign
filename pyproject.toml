@@ -1,0 +1,179 @@
+[project]
+name = "RDI-AgentBeats-TestBehaveAlign"
+version = "0.0.0"
+description = ""
+requires-python = ">=3.13"
+readme = "README.md"
+license = { file = "LICENSE.md" }
+dependencies = [
+    "a2a-sdk[http-server]>=0.3.0",
+    "uvicorn>=0.30.0",
+    "scikit-learn>=1.5.0",
+    "scipy>=1.11.0",
+    "openai>=1.0.0",
+    "httpx>=0.27.0",
+    "pydantic-settings>=2.12.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/purple", "src/green", "src/TheBulletproofProtocol"]
+
+[dependency-groups]
+dev = [
+    "complexipy>=0.6.0",
+    "pymarkdownlnt>=0.9.0",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.8.0",
+    "pyright>=1.1.0",
+]
+
+[tool.uv]
+package = true
+exclude-newer = "2026-01-26T00:00:00Z"
+
+[tool.pyright]
+pythonVersion = "3.13"
+include = ["src", "tests"]
+typeCheckingMode = "strict"
+extraPaths = ["./venv/lib/python3.13/site-packages"]
+useLibraryCodeForTypes = true
+reportMissingImports = true
+reportMissingTypeStubs = false
+reportUnknownMemberType = "none"
+reportUnknownVariableType = "none"
+
+[tool.ruff]
+target-version = "py313"
+src = ["src", "tests"]
+line-length = 100
+exclude = [".claude", "_archive"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+# ignore = ["E203"]  # Whitespace before ':'
+unfixable = ["B"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.isort]
+known-first-party = ["src", "tests"]
+
+[tool.complexipy]
+paths = ["src"]
+max-complexity-allowed = 15
+exclude = ["tests/*"]
+
+[tool.pytest.ini_options]
+addopts = "--strict-markers"  # addopts = "-v --tb=short"
+asyncio_mode = "auto"
+# "function", "class", "module", "package", "session"
+asyncio_default_fixture_loop_scope = "function"
+pythonpath = ["src"]
+testpaths = ["tests"]
+markers = [
+    "integration: marks tests as integration tests",
+    "benchmark: marks tests as benchmark tests",
+]
+
+[tool.coverage]
+
+[tool.coverage.run]
+include = [
+    "src/**/*.py",
+]
+# omit = []
+# branch = true
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    # 'pragma: no cover',
+    'raise AssertionError',
+    'raise NotImplementedError',
+]
+omit = [
+    'env/*',
+    'venv/*',
+    '.venv/*',
+    '*/virtualenv/*',
+    '*/virtualenvs/*',
+    '*/tests/*',
+]
+
+# Pymarkdown configuration for markdown linting
+# Rules: https://github.com/jackdewinter/pymarkdown/blob/master/docs/rules.md
+[tool.pymarkdown]
+log.level = "CRITICAL"
+# MD013: Line too long
+plugins.md013.enabled = false
+# MD025: Multiple top-level headings in the same document
+plugins.md025.enabled = false
+# MD032: Lists should be surrounded by blank lines
+# Note: Autofix pending (scheduled after v1.0.0 release
+# violations must be fixed manually before that
+# https://pymarkdown.readthedocs.io/en/stable/plugins/rule_md032/
+plugins.md032.enabled = true
+# frontmatter extension suppresses violations as of v0.9.34
+# the specific rules have toe be disabled instead
+# extensions.front-matter.enabled = true
+# MD041: First line should be a top-level heading
+plugins.md041.enabled = false
+# MD022: Headings need blank lines around
+# plugins.md022.enabled = false
+# MD003: Inconsistent heading styles (setext vs atx)
+plugins.md003.enabled = false
+
+[tool.bumpversion]
+current_version = "0.0.0"
+parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
+serialize = ["{major}.{minor}.{patch}"]
+commit = true
+tag = true
+allow_dirty = false
+ignore_missing_version = false
+sign_tags = false
+tag_name = "v{new_version}"
+tag_message = "Bump version: {current_version} → {new_version}"
+message = "Bump version: {current_version} → {new_version}"
+commit_args = ""
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+search = 'version = "{current_version}"'
+replace = 'version = "{new_version}"'
+
+[[tool.bumpversion.files]]
+filename = "src/green/__init__.py"
+search = '__version__ = "{current_version}"'
+replace = '__version__ = "{new_version}"'
+
+[[tool.bumpversion.files]]
+filename = "src/purple/__init__.py"
+search = '__version__ = "{current_version}"'
+replace = '__version__ = "{new_version}"'
+
+[[tool.bumpversion.files]]
+filename = "README.md"
+search = "version-{current_version}-58f4c2"
+replace = "version-{new_version}-58f4c2"
+
+[[tool.bumpversion.files]]
+filename = "CHANGELOG.md"
+search = """
+## [Unreleased]
+"""
+replace = """
+## [Unreleased]
+
+## [{new_version}] - {now:%Y-%m-%d}
+"""

@@ -1,0 +1,35 @@
+# AgentBeats Scenario Configuration
+# Based on: https://github.com/RDI-Foundation/agentbeats-leaderboard-template
+#
+# The Bulletproof Protocol - IRS Section 41 R&D Tax Credit Evaluator
+# Green Agent (Benchmark): Evaluates R&D narratives for IRS compliance
+# Purple Agent (Reference): Generates sample R&D narratives for testing
+#
+# Registration Guide: docs/AgentBeats/SUBMISSION-GUIDE.md
+#
+# IMPORTANT: Replace placeholder agentbeats_id values with actual IDs
+# obtained from registering your agents at https://agentbeats.dev
+#
+# Docker Images (after GHCR push):
+#   - ghcr.io/sf-pat-tax/bulletproof-green:latest
+#   - ghcr.io/sf-pat-tax/bulletproof-purple:latest
+
+[green_agent]
+# Green agent: IRS Section 41 R&D Tax Credit Evaluator
+# Register at agentbeats.dev and replace with actual ID
+agentbeats_id = "bulletproof-green-examiner"
+env = { LOG_LEVEL = "INFO" }
+
+[[participants]]
+# Purple agent: R&D Narrative Generator (baseline participant)
+# Register at agentbeats.dev and replace with actual ID
+agentbeats_id = "bulletproof-purple-substantiator"
+name = "substantiator"
+env = {}
+
+[config]
+# Assessment parameters for R&D tax credit evaluation
+difficulty = "medium"
+max_iterations = 5
+target_risk_score = 20
+evaluation_mode = "strict"

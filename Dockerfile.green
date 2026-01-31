@@ -1,0 +1,61 @@
+# syntax=docker/dockerfile:1
+# Dockerfile.green
+# Platform: linux/amd64
+
+# ============================================================================
+# Stage 1: Builder - Install dependencies using uv
+# ============================================================================
+FROM --platform=linux/amd64 python:3.13-slim AS builder
+
+# Install uv for fast dependency management
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+WORKDIR /app
+
+# Copy dependency files first for better caching
+COPY pyproject.toml ./
+COPY uv.lock* ./
+COPY LICENSE.md README.md ./
+
+# Create virtual environment and install dependencies
+RUN uv venv /app/.venv
+ENV PATH="/app/.venv/bin:$PATH"
+RUN uv sync --frozen --no-dev --no-install-project
+
+# Copy source code
+COPY src/ ./src/
+
+# Install the project
+RUN uv sync --frozen --no-dev
+
+# ============================================================================
+# Stage 2: Runtime - Minimal production image
+# ============================================================================
+FROM --platform=linux/amd64 python:3.13-slim AS runtime
+
+WORKDIR /app
+
+# Create non-root user for security
+RUN groupadd --gid 1000 appgroup && \
+    useradd --uid 1000 --gid appgroup --shell /bin/bash --create-home appuser
+
+# Copy virtual environment from builder
+COPY --from=builder /app/.venv /app/.venv
+ENV PATH="/app/.venv/bin:$PATH"
+
+# Copy source code
+COPY --from=builder /app/src /app/src
+
+# Switch to non-root user
+USER appuser
+
+# Expose port 9009 for A2A server
+EXPOSE 9009
+
+# Default host and port - can be overridden via environment variables
+ENV HOST="0.0.0.0"
+ENV PORT="9009"
+
+# ENTRYPOINT runs uvicorn with the green agent server
+# Uses $PORT and $HOST environment variables
+ENTRYPOINT sh -c "python -m uvicorn green.server:create_app --factory --host $HOST --port $PORT"
