@@ -1,9 +1,9 @@
 # AgentBeats Scenario Configuration
 # Based on: https://github.com/RDI-Foundation/agentbeats-leaderboard-template
 #
-# The Bulletproof Protocol - IRS Section 41 R&D Tax Credit Evaluator
-# Green Agent (Benchmark): Evaluates R&D narratives for IRS compliance
-# Purple Agent (Reference): Generates sample R&D narratives for testing
+# TestBehaveAlign - Test Quality Benchmark for AI Coding Agents
+# Green Agent (Evaluator): Measures test quality via fault detection and mutation testing
+# Purple Agent (Baseline): Generates pytest/pytest-bdd tests from specifications
 #
 # Registration Guide: docs/AgentBeats/SUBMISSION-GUIDE.md
 #
@@ -11,25 +11,27 @@
 # obtained from registering your agents at https://agentbeats.dev
 #
 # Docker Images (after GHCR push):
-#   - ghcr.io/sf-pat-tax/bulletproof-green:latest
-#   - ghcr.io/sf-pat-tax/bulletproof-purple:latest
+#   - ghcr.io/<org>/testbehavealign-green:latest
+#   - ghcr.io/<org>/testbehavealign-purple:latest
 
 [green_agent]
-# Green agent: IRS Section 41 R&D Tax Credit Evaluator
+# Green agent: Test Quality Evaluator
+# Runs generated tests against correct/buggy implementations
+# Calculates: fault_detection_rate, mutation_score
 # Register at agentbeats.dev and replace with actual ID
-agentbeats_id = "bulletproof-green-examiner"
+agentbeats_id = "testbehavealign-green"
 env = { LOG_LEVEL = "INFO" }
 
 [[participants]]
-# Purple agent: R&D Narrative Generator (baseline participant)
+# Purple agent: Baseline Test Generator
+# Generates pytest (TDD) or pytest-bdd (BDD) tests from specifications
 # Register at agentbeats.dev and replace with actual ID
-agentbeats_id = "bulletproof-purple-substantiator"
-name = "substantiator"
-env = {}
+agentbeats_id = "testbehavealign-purple"
+name = "purple"
+env = { LOG_LEVEL = "INFO", OPENAI_API_KEY = "${OPENAI_API_KEY}" }
 
 [config]
-# Assessment parameters for R&D tax credit evaluation
-difficulty = "medium"
-max_iterations = 5
-target_risk_score = 20
-evaluation_mode = "strict"
+# Assessment parameters for test quality evaluation
+track = "tdd"           # "tdd" or "bdd"
+task_count = 5          # Number of tasks to evaluate (HumanEval 0-4)
+timeout_per_task = 60   # Seconds per task evaluation

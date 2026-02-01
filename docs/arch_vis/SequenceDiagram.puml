@@ -1,0 +1,43 @@
+@startuml SequenceDiagram
+title A2A Evaluation Flow\n//<color:gray>(When do API calls happen?)</color>//
+
+skinparam participant {
+    BackgroundColor<<Purple>> #E8D5F2
+    BackgroundColor<<Green>> #C8E6C9
+    BackgroundColor<<Client>> #FFE0B2
+}
+
+participant "agentbeats-client" as Client <<Client>>
+participant "Green Agent\n(9009)" as Green <<Green>>
+participant "Purple Agent\n(9010)" as Purple <<Purple>>
+
+== Startup: Discovery ==
+
+Client -> Green : GET /.well-known/agent-card.json
+Green --> Client : agent metadata
+
+Client -> Purple : GET /.well-known/agent-card.json
+Purple --> Client : agent metadata
+
+== Evaluation Loop ==
+
+Client -> Green : POST /evaluate
+activate Green
+
+loop for each task
+    Green -> Green : load spec.py
+    Green -> Purple : POST /generate-tests\n{spec, track}
+    activate Purple
+    Purple -> Purple : LLM generates tests
+    Purple --> Green : {tests}
+    deactivate Purple
+
+    Green -> Green : run tests vs correct.py
+    Green -> Green : run tests vs buggy.py
+    Green -> Green : calculate score
+end
+
+Green --> Client : {results.json}
+deactivate Green
+
+@enduml

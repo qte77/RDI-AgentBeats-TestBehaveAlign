@@ -1,0 +1,48 @@
+@startuml ComponentDiagram
+title TestBehaveAlign Component Architecture\n//<color:gray>(How is it composed?)</color>//
+
+skinparam component {
+    BackgroundColor<<Agent>> #E8D5F2
+    BackgroundColor<<Core>> #C8E6C9
+    BackgroundColor<<Eval>> #B3E5FC
+    BackgroundColor<<External>> #FFECB3
+    BackgroundColor<<Data>> #FFE0B2
+}
+
+package "Data" <<Data>> #FFE0B2 {
+    component [spec.py] as Spec
+    component [correct.py] as Correct
+    component [buggy.py] as Buggy
+}
+
+component [LLM API\n(OpenAI)] as LLMApi <<External>> #FFECB3
+
+package "Purple Agent (Port 9010)" <<Agent>> #E8D5F2 {
+    component [server.py] as PurpleServer
+    component [agent.py] as PurpleAgent
+    PurpleServer -down-> PurpleAgent
+    PurpleAgent -right-> LLMApi : generate tests
+}
+
+package "Green Agent (Port 9009)" <<Core>> #C8E6C9 {
+    component [server.py] as GreenServer
+    component [agent.py] as GreenAgent
+    component [executor.py] as Executor
+
+    package "Evaluation" <<Eval>> #B3E5FC {
+        component [pytest] as Pytest
+        component [mutmut] as Mutmut
+    }
+
+    GreenServer -down-> GreenAgent
+    GreenAgent -down-> Executor
+    Executor -down-> Pytest
+    Executor -down-> Mutmut
+}
+
+GreenAgent -left-> Spec : load
+GreenAgent -right-> PurpleServer : A2A: send spec
+Executor -left-> Correct : run tests
+Executor -left-> Buggy : run tests
+
+@enduml

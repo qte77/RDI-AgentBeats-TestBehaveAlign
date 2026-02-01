@@ -1,0 +1,31 @@
+@startuml TestBehaveAlign-Architecture
+title TestBehaveAlign - Benchmark Flow\n//<color:gray>(How does evaluation work?)</color>//
+
+skinparam component {
+    BackgroundColor<<Assessee>> #E8D5F2
+    BackgroundColor<<Assessor>> #C8E6C9
+}
+
+component "Purple Agent\n(Test Generator)" as Purple <<Assessee>>
+component "Green Agent\n(Evaluator)" as Green <<Assessor>>
+
+Purple -right-> Green : 1. generated tests
+Green -down-> Green : 2. evaluate
+Green -up-> Purple : 4. scores
+
+note bottom of Purple
+  **Test Generation**
+  ──────────────────
+  TDD: pytest from docstring
+  BDD: pytest-bdd from Gherkin
+end note
+
+note bottom of Green
+  **Evaluation Metrics**
+  ──────────────────
+  1. Pass on correct.py
+  2. Fail on buggy.py
+  3. Mutation score (mutmut)
+end note
+
+@enduml
