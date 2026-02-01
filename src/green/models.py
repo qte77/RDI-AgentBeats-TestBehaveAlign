@@ -23,3 +23,19 @@ class Task(BaseModel):
     spec: str = Field(..., description="Specification (spec.py for TDD or spec.feature for BDD)")
     correct_implementation: str = Field(..., description="Correct implementation from correct.py")
     buggy_implementation: str = Field(..., description="Buggy implementation from buggy.py")
+
+
+class TestExecutionResult(BaseModel):
+    """Result of test execution against an implementation.
+
+    Captures exit code, output streams, execution time, and pass/fail status.
+    Immutable after creation (frozen=True).
+    """
+
+    model_config = {"frozen": True}
+
+    exit_code: int = Field(..., description="Test execution exit code (0 = success)")
+    stdout: str = Field(..., description="Standard output from test execution")
+    stderr: str = Field(..., description="Standard error from test execution")
+    execution_time: float = Field(..., description="Execution time in seconds")
+    passed: bool = Field(..., description="True if tests passed (exit code 0), False otherwise")

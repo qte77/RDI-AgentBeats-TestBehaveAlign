@@ -5,10 +5,13 @@ Single executor with simple if/else mode switching (KISS principle).
 """
 
 import json
+import subprocess
+import tempfile
+import time
 from pathlib import Path
 from typing import Literal
 
-from green.models import Task
+from green.models import Task, TestExecutionResult
 from green.settings import Settings
 
 
@@ -122,3 +125,64 @@ def load_task(task_dir: Path, track: Literal["tdd", "bdd"]) -> Task:
         correct_implementation=correct_implementation,
         buggy_implementation=buggy_implementation,
     )
+
+
+def execute_test_against_correct(
+    test_code: str, correct_implementation: str, track: Literal["tdd", "bdd"]
+) -> TestExecutionResult:
+    """Execute generated tests against correct implementation.
+
+    Creates isolated test environment, writes test code and implementation,
+    executes pytest with timeout, captures results, and cleans up.
+
+    Args:
+        test_code: Generated test code to execute
+        correct_implementation: Correct implementation code
+        track: Evaluation track ("tdd" or "bdd")
+
+    Returns:
+        TestExecutionResult with exit code, stdout, stderr, execution time, and pass/fail status
+    """
+    # Create isolated temp directory for test execution
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+
+        # Write correct.py to temp directory
+        correct_file = temp_path / "correct.py"
+        correct_file.write_text(correct_implementation)
+
+        # Write test code to file
+        test_file = temp_path / "test_generated.py"
+        test_file.write_text(test_code)
+
+        # Execute pytest with 30-second timeout
+        start_time = time.time()
+        try:
+            result = subprocess.run(
+                ["pytest", str(test_file), "-v"],
+                cwd=temp_dir,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            exit_code = result.returncode
+            stdout = result.stdout
+            stderr = result.stderr
+        except subprocess.TimeoutExpired as e:
+            # Handle timeout - tests failed due to timeout
+            exit_code = 1  # Non-zero exit code for failure
+            stdout = e.stdout.decode() if e.stdout else ""
+            stderr = e.stderr.decode() if e.stderr else ""
+            stderr += "\nERROR: Test execution exceeded 30-second timeout"
+
+        execution_time = time.time() - start_time
+
+        # Return binary result: PASS (0) or FAIL (non-zero)
+        return TestExecutionResult(
+            exit_code=exit_code,
+            stdout=stdout,
+            stderr=stderr,
+            execution_time=execution_time,
+            passed=(exit_code == 0),
+        )
+        # Temp directory automatically cleaned up by context manager
