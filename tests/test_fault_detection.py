@@ -76,7 +76,7 @@ class TestFaultDetectionScoreCalculation:
     def test_fault_detection_zero_score_missed_bug(
         self, passed_correct_result: TestExecutionResult, passed_buggy_result: TestExecutionResult
     ) -> None:
-        """Calculate fault_detection = 0.0 when tests pass correct BUT also pass buggy (missed bug)."""
+        """Calculate fault_detection = 0.0 when tests pass both correct and buggy (missed bug)."""
         from green.agent import calculate_fault_detection_score
 
         # Tests passed on both correct and buggy - failed to detect bug
@@ -116,9 +116,7 @@ class TestFaultDetectionScoreCalculation:
 class TestFaultDetectionEdgeCases:
     """Test suite for handling edge cases in fault detection."""
 
-    def test_handle_none_correct_result(
-        self, failed_buggy_result: TestExecutionResult
-    ) -> None:
+    def test_handle_none_correct_result(self, failed_buggy_result: TestExecutionResult) -> None:
         """Handle edge case where correct_result is None."""
         from green.agent import calculate_fault_detection_score
 
@@ -129,9 +127,7 @@ class TestFaultDetectionEdgeCases:
 
         assert score == 0.0
 
-    def test_handle_none_buggy_result(
-        self, passed_correct_result: TestExecutionResult
-    ) -> None:
+    def test_handle_none_buggy_result(self, passed_correct_result: TestExecutionResult) -> None:
         """Handle edge case where buggy_result is None."""
         from green.agent import calculate_fault_detection_score
 

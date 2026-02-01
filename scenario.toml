@@ -19,14 +19,14 @@
 # Runs generated tests against correct/buggy implementations
 # Calculates: fault_detection_rate, mutation_score
 # Register at agentbeats.dev and replace with actual ID
-agentbeats_id = "testbehavealign-green"
-env = { LOG_LEVEL = "INFO" }
+agentbeats_id = "019c1705-065a-72f2-ad5c-2cffed6c9732"
+env = { LOG_LEVEL = "INFO", OPENAI_API_KEY = "${OPENAI_API_KEY}" }
 
 [[participants]]
 # Purple agent: Baseline Test Generator
 # Generates pytest (TDD) or pytest-bdd (BDD) tests from specifications
 # Register at agentbeats.dev and replace with actual ID
-agentbeats_id = "testbehavealign-purple"
+agentbeats_id = "019c1703-615a-7320-bde5-011f939b22f3"
 name = "purple"
 env = { LOG_LEVEL = "INFO", OPENAI_API_KEY = "${OPENAI_API_KEY}" }
 
