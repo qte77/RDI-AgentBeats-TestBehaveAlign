@@ -3,7 +3,6 @@
 Following TDD RED phase - these tests MUST fail initially.
 """
 
-import os
 from pathlib import Path
 
 import pytest
@@ -76,7 +75,9 @@ timeout_per_task = 60
 class TestSettingsConfiguration:
     """Test suite for configuration loading from scenario.toml."""
 
-    def test_load_config_from_toml(self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_load_config_from_toml(
+        self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Load configuration from scenario.toml using toml parser."""
         from green.settings import Settings
 
@@ -88,7 +89,9 @@ class TestSettingsConfiguration:
         assert settings.task_count == 5
         assert settings.timeout_per_task == 60
 
-    def test_load_tdd_track(self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_load_tdd_track(
+        self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Read track from scenario.toml config - TDD mode."""
         from green.settings import Settings
 
@@ -112,7 +115,9 @@ class TestSettingsConfiguration:
         assert settings.is_bdd_mode() is True
         assert settings.is_tdd_mode() is False
 
-    def test_validate_supported_track_tdd(self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_validate_supported_track_tdd(
+        self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Validate track is supported - TDD."""
         from green.settings import Settings
 
@@ -122,7 +127,9 @@ class TestSettingsConfiguration:
         settings = Settings.from_file(temp_scenario_file)
         assert settings.track == "tdd"
 
-    def test_validate_supported_track_bdd(self, temp_scenario_bdd: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_validate_supported_track_bdd(
+        self, temp_scenario_bdd: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Validate track is supported - BDD."""
         from green.settings import Settings
 
@@ -132,7 +139,9 @@ class TestSettingsConfiguration:
         settings = Settings.from_file(temp_scenario_bdd)
         assert settings.track == "bdd"
 
-    def test_fail_on_invalid_track(self, temp_scenario_invalid: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_fail_on_invalid_track(
+        self, temp_scenario_invalid: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Validate track is supported - fail on invalid value."""
         from green.settings import Settings, SettingsError
 
@@ -150,7 +159,9 @@ class TestSettingsConfiguration:
         with pytest.raises(SettingsError, match="track"):
             Settings.from_file(temp_scenario_missing_track)
 
-    def test_load_openai_env_vars(self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_load_openai_env_vars(
+        self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Load OpenAI env vars: OPENAI_API_KEY, OPENAI_BASE_URL."""
         from green.settings import Settings
 
@@ -163,7 +174,9 @@ class TestSettingsConfiguration:
         assert settings.openai_api_key == "test-api-key-123"
         assert settings.openai_base_url == "https://api.openai.com/v1"
 
-    def test_openai_base_url_optional(self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_openai_base_url_optional(
+        self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """OPENAI_BASE_URL is optional - support OpenAI-compatible endpoints."""
         from green.settings import Settings
 
@@ -176,7 +189,9 @@ class TestSettingsConfiguration:
         assert settings.openai_api_key == "test-api-key-123"
         assert settings.openai_base_url is None
 
-    def test_fail_on_missing_openai_api_key(self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_fail_on_missing_openai_api_key(
+        self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Fail fast if OPENAI_API_KEY is missing."""
         from green.settings import Settings, SettingsError
 
@@ -187,7 +202,9 @@ class TestSettingsConfiguration:
         with pytest.raises(SettingsError, match="OPENAI_API_KEY"):
             Settings.from_file(temp_scenario_file)
 
-    def test_get_task_directory_tdd(self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_get_task_directory_tdd(
+        self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Load TDD tasks from data/tasks/tdd/."""
         from green.settings import Settings
 
@@ -199,7 +216,9 @@ class TestSettingsConfiguration:
         assert "data/tasks/tdd" in str(task_dir)
         assert task_dir.parts[-2] == "tdd"
 
-    def test_get_task_directory_bdd(self, temp_scenario_bdd: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_get_task_directory_bdd(
+        self, temp_scenario_bdd: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Load BDD tasks from data/tasks/bdd/."""
         from green.settings import Settings
 
@@ -211,7 +230,9 @@ class TestSettingsConfiguration:
         assert "data/tasks/bdd" in str(task_dir)
         assert task_dir.parts[-2] == "bdd"
 
-    def test_settings_immutable(self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_settings_immutable(
+        self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Settings should be immutable after creation."""
         from green.settings import Settings
 

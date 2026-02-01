@@ -12,7 +12,6 @@ import pytest
 @pytest.fixture
 def mock_settings_tdd(monkeypatch: pytest.MonkeyPatch):
     """Mock settings with TDD track."""
-    from green.settings import Settings
 
     class MockSettings:
         track = "tdd"
@@ -36,7 +35,6 @@ def mock_settings_tdd(monkeypatch: pytest.MonkeyPatch):
 @pytest.fixture
 def mock_settings_bdd(monkeypatch: pytest.MonkeyPatch):
     """Mock settings with BDD track."""
-    from green.settings import Settings
 
     class MockSettings:
         track = "bdd"
@@ -78,7 +76,9 @@ class TestAgentTrackConfiguration:
         assert agent.track == "bdd"
         assert agent.is_bdd_mode() is True
 
-    def test_agent_single_executor_with_mode_switch(self, mock_settings_tdd, mock_settings_bdd) -> None:
+    def test_agent_single_executor_with_mode_switch(
+        self, mock_settings_tdd, mock_settings_bdd
+    ) -> None:
         """Single executor with mode switch (KISS principle, no inheritance)."""
         from green.agent import GreenAgent
 
@@ -87,7 +87,7 @@ class TestAgentTrackConfiguration:
         agent_bdd = GreenAgent(settings=mock_settings_bdd)
 
         # Both should be instances of the same class (no inheritance/subclasses)
-        assert type(agent_tdd) == type(agent_bdd)
+        assert type(agent_tdd) is type(agent_bdd)
         assert agent_tdd.__class__.__name__ == "GreenAgent"
         assert agent_bdd.__class__.__name__ == "GreenAgent"
 
