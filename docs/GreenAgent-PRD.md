@@ -1,6 +1,6 @@
 ---
 title: Product Requirements Document - Green Agent
-version: 2.0
+version: 2.1
 ---
 
 ## Project Overview
@@ -17,9 +17,89 @@ The Green Agent is an automated test quality evaluator that measures how well AI
 
 <!-- PARSER REQUIREMENT: Use exactly "#### Feature N:" format -->
 
-#### Feature 1: Track Switching (TDD vs BDD)
+### Data Preparation (CLI Scripts - Run Once)
+
+#### Feature 1: Task Data Download (EvalPlus)
+
+**Description**: Download benchmark tasks from EvalPlus HumanEval dataset for evaluation.
+
+**Acceptance Criteria**:
+- [ ] Download HumanEval tasks 0-4 from EvalPlus benchmark
+- [ ] Extract function specs (signature + docstring) to `spec.py`
+- [ ] Extract canonical solutions to `implementation/correct.py`
+- [ ] Generate `metadata.json` with task_id, function_name, track, source
+- [ ] Structure output as `data/tasks/tdd/python/task_{001..005}/`
+- [ ] Handle evalplus import errors gracefully
+- [ ] Log download progress and success
+
+**Technical Requirements**:
+- Use `evalplus.data.get_human_eval_plus()` API
+- Map HumanEval IDs to task names (e.g., 0 → task_001_has_close_elements)
+- Create directory structure with pathlib
+
+**Files**:
+- `scripts/data_prep/download_evalplus.py`
+
+---
+
+#### Feature 2: Variant Generation (Buggy/Alternative)
+
+**Description**: Generate buggy and alternative implementations from correct solutions for fault detection testing.
+
+**Acceptance Criteria**:
+- [ ] Read `correct.py` from each task directory
+- [ ] Generate `buggy.py` with injected known defects:
+  - Off-by-one errors (< vs <=)
+  - Logic errors (incorrect conditions)
+  - Arithmetic errors (// vs /)
+  - Missing checks
+- [ ] Generate `alternative.py` (alternative correct implementation)
+- [ ] Use task-specific bug patterns when available
+- [ ] Fall back to generic bug injection if no pattern defined
+- [ ] Validate buggy code is syntactically valid (ast.parse)
+- [ ] Log which bugs were injected per task
+
+**Technical Requirements**:
+- Define BUG_PATTERNS dict mapping task_id to injection rules
+- Use string replacement for bug injection
+- Validate buggy code differs from correct code
+
+**Files**:
+- `scripts/data_prep/generate_variants.py`
+
+---
+
+#### Feature 3: BDD Feature Generation (Gherkin)
+
+**Description**: Generate BDD Gherkin feature files from TDD docstring examples.
+
+**Acceptance Criteria**:
+- [ ] Parse TDD `spec.py` docstring examples (>>> format)
+- [ ] Generate Gherkin `spec.feature` files with:
+  - Feature description from docstring
+  - Scenarios from docstring examples
+  - Given/When/Then steps for each example
+- [ ] Create BDD task structure: `data/tasks/bdd/python/task_*/`
+- [ ] Symlink implementation/ to TDD implementations (reuse correct.py, buggy.py)
+- [ ] Generate BDD metadata.json with track="bdd" and tdd_source reference
+
+**Technical Requirements**:
+- Use regex to parse >>> docstring examples
+- Generate relative symlinks for implementation reuse
+- Extract function name from spec or metadata
+
+**Files**:
+- `scripts/data_prep/generate_bdd.py`
+
+---
+
+### Core Evaluation (A2A Runtime)
+
+#### Feature 4: Track Switching (TDD vs BDD)
 
 **Description**: Support both TDD and BDD evaluation modes to evaluate different testing paradigms.
+
+**Priority**: Depends on Features 1-3 (data must exist)
 
 **Acceptance Criteria**:
 - [ ] Read track from scenario.toml config
@@ -42,7 +122,7 @@ The Green Agent is an automated test quality evaluator that measures how well AI
 
 ---
 
-#### Feature 2: Task Loading & Specification Parsing
+#### Feature 5: Task Loading & Specification Parsing
 
 **Description**: Load task specifications from the data directory to provide test generation prompts to the Purple Agent.
 
@@ -68,7 +148,7 @@ The Green Agent is an automated test quality evaluator that measures how well AI
 
 ---
 
-#### Feature 3: A2A Protocol Implementation (Server)
+#### Feature 6: A2A Protocol Implementation (Server)
 
 **Description**: Serve A2A HTTP endpoints so that AgentBeats client can orchestrate evaluation.
 
@@ -92,7 +172,7 @@ The Green Agent is an automated test quality evaluator that measures how well AI
 
 ---
 
-#### Feature 4: Communication with Purple Agent (A2A Client)
+#### Feature 7: Communication with Purple Agent (A2A Client)
 
 **Description**: Send specifications to Purple Agent using A2A protocol to receive generated test code.
 
@@ -118,7 +198,7 @@ The Green Agent is an automated test quality evaluator that measures how well AI
 
 ---
 
-#### Feature 5: Test Execution Against Correct Implementation
+#### Feature 8: Test Execution Against Correct Implementation
 
 **Description**: Run generated tests against correct.py to verify tests pass on working code.
 
@@ -144,12 +224,12 @@ The Green Agent is an automated test quality evaluator that measures how well AI
 
 ---
 
-#### Feature 6: Test Execution Against Buggy Implementation
+#### Feature 9: Test Execution Against Buggy Implementation
 
 **Description**: Run generated tests against buggy.py to verify tests detect injected faults.
 
 **Acceptance Criteria**:
-- [ ] Same isolation as Feature 5
+- [ ] Same isolation as Feature 8
 - [ ] Run tests against buggy.py instead of correct.py
 - [ ] Expect tests to FAIL (detect injected bugs)
 - [ ] Return binary result: detected bug (FAIL) or missed bug (PASS)
@@ -157,7 +237,7 @@ The Green Agent is an automated test quality evaluator that measures how well AI
 - [ ] Validate test failure is due to buggy implementation (not infrastructure)
 
 **Technical Requirements**:
-- Reuse test execution infrastructure from Feature 5
+- Reuse test execution infrastructure from Feature 8
 - Distinguish assertion failures from import/syntax errors
 - Buggy implementations have known defects
 
@@ -167,7 +247,7 @@ The Green Agent is an automated test quality evaluator that measures how well AI
 
 ---
 
-#### Feature 7: Fault Detection Score Calculation
+#### Feature 10: Fault Detection Score Calculation
 
 **Description**: Calculate fault detection rate for each task to measure test effectiveness.
 
@@ -191,7 +271,7 @@ The Green Agent is an automated test quality evaluator that measures how well AI
 
 ---
 
-#### Feature 8: Mutation Testing Integration
+#### Feature 11: Mutation Testing Integration
 
 **Description**: Run mutmut mutation testing on generated tests to measure test thoroughness.
 
@@ -216,7 +296,7 @@ The Green Agent is an automated test quality evaluator that measures how well AI
 
 ---
 
-#### Feature 9: Composite Scoring
+#### Feature 12: Composite Scoring
 
 **Description**: Calculate weighted composite score to rank test quality.
 
@@ -237,7 +317,7 @@ The Green Agent is an automated test quality evaluator that measures how well AI
 
 ---
 
-#### Feature 10: Results JSON Generation
+#### Feature 13: Results JSON Generation
 
 **Description**: Output results in AgentBeats format so results integrate with the leaderboard.
 
@@ -356,6 +436,13 @@ From `pyproject.toml` main dependencies:
 - `pytest-bdd>=7.0.0` - BDD test support
 - `mutmut>=3.4.0` - Mutation testing
 
+### Python Packages (Scripts - Data Preparation)
+
+From `[dependency-groups] scripts`:
+- `evalplus>=0.2.0` - EvalPlus benchmark data download (Features 1-3)
+
+Install with: `uv sync --group scripts`
+
 ### Python Packages (Dev - Testing/Linting)
 
 From `[dependency-groups] dev`:
@@ -403,15 +490,21 @@ Install with: `uv sync --group dev`
 <!-- PARSER REQUIREMENT: Include story count in parentheses -->
 <!-- PARSER REQUIREMENT: Use (depends: STORY-XXX, STORY-YYY) for dependencies -->
 
-Story Breakdown - Phase 1 (10 stories total):
+Story Breakdown - Phase 1 (13 stories total):
 
-- **Feature 1 (Track Switching)** → STORY-001: Implement track configuration loading
-- **Feature 2 (Task Loading)** → STORY-002: Implement task directory loading and spec parsing (depends: STORY-001)
-- **Feature 3 (A2A Server)** → STORY-003: Implement A2A server with AgentCard and endpoints
-- **Feature 4 (A2A Client)** → STORY-004: Implement Purple Agent communication (depends: STORY-003)
-- **Feature 5 (Test Execution - Correct)** → STORY-005: Implement test execution against correct.py (depends: STORY-002, STORY-004)
-- **Feature 6 (Test Execution - Buggy)** → STORY-006: Implement test execution against buggy.py (depends: STORY-005)
-- **Feature 7 (Fault Detection)** → STORY-007: Implement fault detection score calculation (depends: STORY-005, STORY-006)
-- **Feature 8 (Mutation Testing)** → STORY-008: Implement mutation testing integration (depends: STORY-005)
-- **Feature 9 (Composite Scoring)** → STORY-009: Implement composite score calculation (depends: STORY-007, STORY-008)
-- **Feature 10 (Results Output)** → STORY-010: Implement AgentBeats results.json generation (depends: STORY-009)
+**Data Preparation (CLI Scripts - Top Priority)**:
+- **Feature 1 (Task Download)** → STORY-001: Download EvalPlus HumanEval tasks to data/tasks/tdd/
+- **Feature 2 (Variant Generation)** → STORY-002: Generate buggy.py and alternative.py (depends: STORY-001)
+- **Feature 3 (BDD Generation)** → STORY-003: Generate Gherkin spec.feature files (depends: STORY-001)
+
+**Core Evaluation (A2A Runtime)**:
+- **Feature 4 (Track Switching)** → STORY-004: Implement track configuration loading (depends: STORY-002, STORY-003)
+- **Feature 5 (Task Loading)** → STORY-005: Implement task directory loading and spec parsing (depends: STORY-004)
+- **Feature 6 (A2A Server)** → STORY-006: Implement A2A server with AgentCard and endpoints
+- **Feature 7 (A2A Client)** → STORY-007: Implement Purple Agent communication (depends: STORY-006)
+- **Feature 8 (Test Execution - Correct)** → STORY-008: Implement test execution against correct.py (depends: STORY-005, STORY-007)
+- **Feature 9 (Test Execution - Buggy)** → STORY-009: Implement test execution against buggy.py (depends: STORY-008)
+- **Feature 10 (Fault Detection)** → STORY-010: Implement fault detection score calculation (depends: STORY-008, STORY-009)
+- **Feature 11 (Mutation Testing)** → STORY-011: Implement mutation testing integration (depends: STORY-008)
+- **Feature 12 (Composite Scoring)** → STORY-012: Implement composite score calculation (depends: STORY-010, STORY-011)
+- **Feature 13 (Results Output)** → STORY-013: Implement AgentBeats results.json generation (depends: STORY-012)
