@@ -274,7 +274,11 @@ class TestGenerateBDD:
             impl_dir.mkdir(exist_ok=True)
             (impl_dir / "correct.py").write_text(spec_content + "    return True\n")
 
-            metadata = {"task_id": f"task_{i:03d}_test_func", "function_name": "test_func", "track": "tdd"}
+            metadata = {
+                "task_id": f"task_{i:03d}_test_func",
+                "function_name": "test_func",
+                "track": "tdd",
+            }
             (task_dir / "metadata.json").write_text(json.dumps(metadata))
 
         # Generate BDD tasks
