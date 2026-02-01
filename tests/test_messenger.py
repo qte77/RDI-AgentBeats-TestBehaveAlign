@@ -30,7 +30,12 @@ async def test_discover_agent_card_success(purple_messenger: PurpleAgentMessenge
         "version": "0.0.0",
     }
 
-    with patch.object(httpx.AsyncClient, "get", return_value=mock_response):
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.get = AsyncMock(return_value=mock_response)
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
         agent_card = await purple_messenger.discover_agent_card()
 
     assert agent_card["name"] == "Purple Agent"
@@ -40,9 +45,12 @@ async def test_discover_agent_card_success(purple_messenger: PurpleAgentMessenge
 @pytest.mark.asyncio
 async def test_discover_agent_card_failure(purple_messenger: PurpleAgentMessenger) -> None:
     """Test agent card discovery failure handling."""
-    with patch.object(
-        httpx.AsyncClient, "get", side_effect=httpx.ConnectError("Connection failed")
-    ):
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.get = AsyncMock(side_effect=httpx.ConnectError("Connection failed"))
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
         with pytest.raises(PurpleAgentError, match="Failed to discover Purple Agent"):
             await purple_messenger.discover_agent_card()
 
@@ -57,7 +65,12 @@ async def test_generate_tests_success(purple_messenger: PurpleAgentMessenger) ->
     mock_response.status_code = 200
     mock_response.json.return_value = {"tests": expected_tests}
 
-    with patch.object(httpx.AsyncClient, "post", return_value=mock_response):
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.post = AsyncMock(return_value=mock_response)
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
         tests = await purple_messenger.generate_tests(spec=spec, track="tdd")
 
     assert tests == expected_tests
@@ -74,8 +87,13 @@ async def test_generate_tests_validates_syntax(purple_messenger: PurpleAgentMess
     mock_response.status_code = 200
     mock_response.json.return_value = {"tests": valid_tests}
 
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.post = AsyncMock(return_value=mock_response)
+
     with (
-        patch.object(httpx.AsyncClient, "post", return_value=mock_response),
+        patch("httpx.AsyncClient", return_value=mock_client),
         patch("ast.parse") as mock_parse,
     ):
         await purple_messenger.generate_tests(spec=spec, track="tdd")
@@ -95,7 +113,12 @@ async def test_generate_tests_invalid_syntax_raises_error(
     mock_response.status_code = 200
     mock_response.json.return_value = {"tests": invalid_tests}
 
-    with patch.object(httpx.AsyncClient, "post", return_value=mock_response):
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.post = AsyncMock(return_value=mock_response)
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
         with pytest.raises(PurpleAgentError, match="Invalid Python syntax in response"):
             await purple_messenger.generate_tests(spec=spec, track="tdd")
 
@@ -105,9 +128,12 @@ async def test_generate_tests_timeout(purple_messenger: PurpleAgentMessenger) ->
     """Test timeout handling (30 seconds per request)."""
     spec = "def add(a: int, b: int) -> int:\n    pass"
 
-    with patch.object(
-        httpx.AsyncClient, "post", side_effect=httpx.TimeoutException("Request timed out")
-    ):
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.post = AsyncMock(side_effect=httpx.TimeoutException("Request timed out"))
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
         with pytest.raises(PurpleAgentError, match="Request timed out"):
             await purple_messenger.generate_tests(spec=spec, track="tdd")
 
@@ -122,20 +148,23 @@ async def test_generate_tests_retry_on_failure(purple_messenger: PurpleAgentMess
     mock_response_success.status_code = 200
     mock_response_success.json.return_value = {"tests": "def test_add(): pass"}
 
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.post = AsyncMock(
+        side_effect=[
+            httpx.HTTPStatusError(
+                "Server error", request=MagicMock(), response=MagicMock(status_code=500)
+            ),
+            httpx.HTTPStatusError(
+                "Server error", request=MagicMock(), response=MagicMock(status_code=500)
+            ),
+            mock_response_success,
+        ]
+    )
+
     with (
-        patch.object(
-            httpx.AsyncClient,
-            "post",
-            side_effect=[
-                httpx.HTTPStatusError(
-                    "Server error", request=MagicMock(), response=MagicMock(status_code=500)
-                ),
-                httpx.HTTPStatusError(
-                    "Server error", request=MagicMock(), response=MagicMock(status_code=500)
-                ),
-                mock_response_success,
-            ],
-        ),
+        patch("httpx.AsyncClient", return_value=mock_client),
         patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
     ):
         tests = await purple_messenger.generate_tests(spec=spec, track="tdd")
@@ -152,14 +181,17 @@ async def test_generate_tests_retry_exhausted(purple_messenger: PurpleAgentMesse
     """Test that after 3 failed attempts, error is raised."""
     spec = "def add(a: int, b: int) -> int:\n    pass"
 
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.post = AsyncMock(
+        side_effect=httpx.HTTPStatusError(
+            "Server error", request=MagicMock(), response=MagicMock(status_code=500)
+        )
+    )
+
     with (
-        patch.object(
-            httpx.AsyncClient,
-            "post",
-            side_effect=httpx.HTTPStatusError(
-                "Server error", request=MagicMock(), response=MagicMock(status_code=500)
-            ),
-        ),
+        patch("httpx.AsyncClient", return_value=mock_client),
         patch("asyncio.sleep", new_callable=AsyncMock),
     ):
         with pytest.raises(PurpleAgentError, match="Failed after 3 attempts"):
@@ -178,12 +210,17 @@ async def test_generate_tests_sends_correct_request(
     mock_response.status_code = 200
     mock_response.json.return_value = {"tests": "def test_add(): pass"}
 
-    with patch.object(httpx.AsyncClient, "post", return_value=mock_response) as mock_post:
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.post = AsyncMock(return_value=mock_response)
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
         await purple_messenger.generate_tests(spec=spec, track=track)
 
         # Verify POST was called with correct URL and payload
-        mock_post.assert_called_once()
-        call_args = mock_post.call_args
+        mock_client.post.assert_called_once()
+        call_args = mock_client.post.call_args
         assert call_args[0][0] == "http://localhost:9010/generate-tests"
         assert call_args[1]["json"] == {"spec": spec, "track": track}
 
@@ -203,23 +240,37 @@ async def test_generate_tests_bdd_track(purple_messenger: PurpleAgentMessenger) 
     mock_response.status_code = 200
     mock_response.json.return_value = {"tests": "def test_bdd(): pass"}
 
-    with patch.object(httpx.AsyncClient, "post", return_value=mock_response) as mock_post:
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.post = AsyncMock(return_value=mock_response)
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
         await purple_messenger.generate_tests(spec=spec, track=track)
 
-        call_args = mock_post.call_args
+        call_args = mock_client.post.call_args
         assert call_args[1]["json"]["track"] == "bdd"
 
 
 @pytest.mark.asyncio
 async def test_logging_interactions(purple_messenger: PurpleAgentMessenger, caplog) -> None:
     """Test that all A2A interactions are logged for debugging."""
+    import logging
+
+    caplog.set_level(logging.INFO, logger="green.messenger")
+
     spec = "def add(a: int, b: int) -> int:\n    pass"
 
     mock_response = MagicMock(spec=httpx.Response)
     mock_response.status_code = 200
     mock_response.json.return_value = {"tests": "def test_add(): pass"}
 
-    with patch.object(httpx.AsyncClient, "post", return_value=mock_response):
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.post = AsyncMock(return_value=mock_response)
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
         await purple_messenger.generate_tests(spec=spec, track="tdd")
 
     # Verify logging occurred
