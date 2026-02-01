@@ -232,3 +232,53 @@ def execute_test_against_buggy(
         Assertion failures in stdout/stderr indicate bug detection.
     """
     return _execute_test_in_isolation(test_code, buggy_implementation, "buggy.py", track)
+
+
+def calculate_fault_detection_score(
+    correct_result: TestExecutionResult | None, buggy_result: TestExecutionResult | None
+) -> float:
+    """Calculate fault detection score for a single task.
+
+    Calculates whether tests correctly pass on correct implementation AND
+    fail on buggy implementation (detecting the injected bug).
+
+    Formula: fault_detection = 1.0 if (passed_correct AND failed_buggy) else 0.0
+
+    Args:
+        correct_result: Test execution result against correct implementation (or None)
+        buggy_result: Test execution result against buggy implementation (or None)
+
+    Returns:
+        1.0 if tests passed correct AND failed buggy (perfect detection)
+        0.0 otherwise (failed to detect bug, or tests themselves broken)
+    """
+    # Handle edge cases: None results
+    if correct_result is None or buggy_result is None:
+        return 0.0
+
+    # Perfect fault detection: tests pass on correct, fail on buggy
+    if correct_result.passed and not buggy_result.passed:
+        return 1.0
+
+    # All other cases: 0.0
+    # - Tests failed on correct (tests broken)
+    # - Tests passed on buggy (missed bug)
+    # - Tests failed on both (tests broken)
+    return 0.0
+
+
+def aggregate_fault_detection_scores(scores: list[float]) -> float:
+    """Aggregate fault detection scores across multiple tasks.
+
+    Uses simple averaging to calculate overall fault detection rate.
+
+    Args:
+        scores: List of per-task fault detection scores (each in range [0.0, 1.0])
+
+    Returns:
+        Average fault detection score, or 0.0 for empty list
+    """
+    if not scores:
+        return 0.0
+
+    return sum(scores) / len(scores)
