@@ -31,18 +31,14 @@ class Settings(BaseModel):
     task_count: int = Field(..., description="Number of tasks to evaluate")
     timeout_per_task: int = Field(..., description="Timeout per task in seconds")
     openai_api_key: str = Field(..., description="OpenAI API key from environment")
-    openai_base_url: str | None = Field(
-        None, description="Optional OpenAI-compatible base URL"
-    )
+    openai_base_url: str | None = Field(None, description="Optional OpenAI-compatible base URL")
 
     @field_validator("track")
     @classmethod
     def validate_track(cls, v: str) -> str:
         """Validate track is either 'tdd' or 'bdd'."""
         if v not in ("tdd", "bdd"):
-            raise ValueError(
-                f"Invalid track '{v}'. Must be 'tdd' or 'bdd'."
-            )
+            raise ValueError(f"Invalid track '{v}'. Must be 'tdd' or 'bdd'.")
         return v
 
     @classmethod
@@ -76,9 +72,7 @@ class Settings(BaseModel):
             # Load OpenAI credentials from environment
             openai_api_key = os.getenv("OPENAI_API_KEY")
             if not openai_api_key:
-                raise SettingsError(
-                    "Missing required environment variable: OPENAI_API_KEY"
-                )
+                raise SettingsError("Missing required environment variable: OPENAI_API_KEY")
 
             openai_base_url = os.getenv("OPENAI_BASE_URL")
 
