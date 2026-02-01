@@ -43,9 +43,7 @@ class TestDownloadEvalPlus:
             assert len(matching_dirs) == 1, f"Expected exactly one directory for task {i:03d}"
             assert matching_dirs[0].is_dir()
 
-    def test_download_creates_spec_py(
-        self, temp_data_dir: Path, cleanup_data_dir: Path
-    ) -> None:
+    def test_download_creates_spec_py(self, temp_data_dir: Path, cleanup_data_dir: Path) -> None:
         """Download creates spec.py with function signature and docstring."""
         from scripts.data_prep.download_evalplus import download_tasks
 
@@ -158,9 +156,7 @@ class TestDownloadEvalPlus:
         # Should see progress messages for downloading tasks
         assert len(caplog.records) > 0, "Should have logged messages"
 
-    def test_download_uses_pathlib(
-        self, temp_data_dir: Path, cleanup_data_dir: Path
-    ) -> None:
+    def test_download_uses_pathlib(self, temp_data_dir: Path, cleanup_data_dir: Path) -> None:
         """Download uses pathlib for cross-platform path handling."""
         from scripts.data_prep.download_evalplus import download_tasks
 
@@ -193,9 +189,7 @@ class TestDownloadEvalPlus:
         for file_path in required_files:
             assert file_path.exists(), f"{file_path.relative_to(task_dir)} should exist"
 
-    def test_multiple_tasks_downloaded(
-        self, temp_data_dir: Path, cleanup_data_dir: Path
-    ) -> None:
+    def test_multiple_tasks_downloaded(self, temp_data_dir: Path, cleanup_data_dir: Path) -> None:
         """Download creates all 5 tasks (0-4 from HumanEval)."""
         from scripts.data_prep.download_evalplus import download_tasks
 

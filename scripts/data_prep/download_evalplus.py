@@ -9,10 +9,6 @@ import logging
 from pathlib import Path
 from typing import Any
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
 logger = logging.getLogger(__name__)
 
 
@@ -145,6 +141,11 @@ def _write_metadata(task_dir: Path, task_id: int, function_name: str) -> None:
 
 def main() -> None:
     """Main entry point for downloading EvalPlus tasks."""
+    # Configure logging for CLI usage
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+
     # Default: download first 5 tasks to data/tasks/tdd/python
     output_dir = Path("data/tasks/tdd/python")
     task_range = (0, 5)  # HumanEval tasks 0-4
