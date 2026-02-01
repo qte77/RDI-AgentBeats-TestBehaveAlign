@@ -39,7 +39,6 @@ class TestDownloadEvalPlus:
 
         # Verify all 5 task directories exist
         for i in range(1, 6):
-            task_dir = temp_data_dir / f"task_{i:03d}_*"
             matching_dirs = list(temp_data_dir.glob(f"task_{i:03d}_*"))
             assert len(matching_dirs) == 1, f"Expected exactly one directory for task {i:03d}"
             assert matching_dirs[0].is_dir()
@@ -146,13 +145,17 @@ class TestDownloadEvalPlus:
         self, temp_data_dir: Path, cleanup_data_dir: Path, caplog: pytest.LogCaptureFixture
     ) -> None:
         """Download logs progress and success messages."""
+        import logging
+
         from scripts.data_prep.download_evalplus import download_tasks
+
+        # Ensure logging is captured at INFO level
+        caplog.set_level(logging.INFO)
 
         download_tasks(output_dir=temp_data_dir, task_range=(0, 2))
 
         # Check that logging occurred
         # Should see progress messages for downloading tasks
-        log_text = caplog.text.lower()
         assert len(caplog.records) > 0, "Should have logged messages"
 
     def test_download_uses_pathlib(
