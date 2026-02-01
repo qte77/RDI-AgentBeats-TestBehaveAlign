@@ -88,6 +88,7 @@ testpaths = ["tests"]
 markers = [
     "integration: marks tests as integration tests",
     "benchmark: marks tests as benchmark tests",
+    "serial: marks tests to run serially (not in parallel)",
 ]
 
 [tool.coverage]

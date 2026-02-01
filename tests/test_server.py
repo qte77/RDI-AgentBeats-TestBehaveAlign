@@ -36,13 +36,23 @@ timeout_per_task = 60
 
 
 @pytest.fixture
-async def server_port() -> int:
-    """Return the port the server should run on."""
-    return 9009
+def server_port() -> int:
+    """Return the port the server should run on.
+
+    Use dynamic port allocation to avoid collisions during concurrent test runs.
+    """
+    import socket
+
+    # Find an available port dynamically
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("", 0))
+        sock.listen(1)
+        port = sock.getsockname()[1]
+    return port
 
 
 @pytest.fixture
-async def base_url(server_port: int) -> str:
+def base_url(server_port: int) -> str:
     """Return the base URL for the test server."""
     return f"http://localhost:{server_port}"
 
@@ -52,22 +62,22 @@ class TestA2AServerStartup:
 
     @pytest.mark.asyncio
     async def test_server_serves_on_port_9009(
-        self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch
+        self, temp_scenario_file: Path, server_port: int, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Serve on port 9009."""
         from green.server import create_server
 
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
-        # Create server instance
-        server = create_server(temp_scenario_file)
+        # Create server instance with configured port
+        server = create_server(temp_scenario_file, port=server_port)
 
-        # Verify server is configured for port 9009
-        assert server.port == 9009
+        # Verify server is configured for the specified port
+        assert server.port == server_port
 
     @pytest.mark.asyncio
     async def test_server_uses_a2a_starlette_application(
-        self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch
+        self, temp_scenario_file: Path, server_port: int, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Use a2a-sdk A2AStarletteApplication."""
         from green.server import create_server
@@ -75,7 +85,7 @@ class TestA2AServerStartup:
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
         # Create server instance
-        server = create_server(temp_scenario_file)
+        server = create_server(temp_scenario_file, port=server_port)
 
         # Verify server uses A2A application
         assert hasattr(server, "app")
@@ -88,7 +98,11 @@ class TestAgentCardEndpoint:
 
     @pytest.mark.asyncio
     async def test_agent_card_endpoint_exists(
-        self, temp_scenario_file: Path, base_url: str, monkeypatch: pytest.MonkeyPatch
+        self,
+        temp_scenario_file: Path,
+        server_port: int,
+        base_url: str,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """GET /.well-known/agent-card.json → agent metadata."""
         from green.server import create_server
@@ -96,7 +110,7 @@ class TestAgentCardEndpoint:
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
         # Start server in background
-        server = create_server(temp_scenario_file)
+        server = create_server(temp_scenario_file, port=server_port)
         server_task = asyncio.create_task(server.start())
 
         try:
@@ -104,7 +118,7 @@ class TestAgentCardEndpoint:
             await asyncio.sleep(0.5)
 
             # Make request to agent card endpoint
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(trust_env=False) as client:
                 response = await client.get(f"{base_url}/.well-known/agent-card.json")
 
             # Verify endpoint is accessible
@@ -126,16 +140,17 @@ class TestAgentCardEndpoint:
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
         # Start server in background
-        server = create_server(temp_scenario_file)
+        server = create_server(temp_scenario_file, port=server_port)
         server_task = asyncio.create_task(server.start())
 
         try:
             # Wait for server to be ready
             await asyncio.sleep(0.5)
 
-            # Get agent card
-            async with httpx.AsyncClient() as client:
-                response = await client.get(f"{base_url}/.well-known/agent-card.json")
+            # Get agent card (use server_port in URL)
+            test_url = f"http://localhost:{server_port}"
+            async with httpx.AsyncClient(trust_env=False) as client:
+                response = await client.get(f"{test_url}/.well-known/agent-card.json")
 
             agent_card = response.json()
 
@@ -163,16 +178,17 @@ class TestAgentCardEndpoint:
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
         # Start server in background
-        server = create_server(temp_scenario_file)
+        server = create_server(temp_scenario_file, port=server_port)
         server_task = asyncio.create_task(server.start())
 
         try:
             # Wait for server to be ready
             await asyncio.sleep(0.5)
 
-            # Get agent card
-            async with httpx.AsyncClient() as client:
-                response = await client.get(f"{base_url}/.well-known/agent-card.json")
+            # Get agent card (use server_port in URL)
+            test_url = f"http://localhost:{server_port}"
+            async with httpx.AsyncClient(trust_env=False) as client:
+                response = await client.get(f"{test_url}/.well-known/agent-card.json")
 
             agent_card = response.json()
 
@@ -192,7 +208,11 @@ class TestEvaluateEndpoint:
 
     @pytest.mark.asyncio
     async def test_evaluate_endpoint_exists(
-        self, temp_scenario_file: Path, base_url: str, monkeypatch: pytest.MonkeyPatch
+        self,
+        temp_scenario_file: Path,
+        server_port: int,
+        base_url: str,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """POST /evaluate → start evaluation, return results."""
         from green.server import create_server
@@ -200,17 +220,18 @@ class TestEvaluateEndpoint:
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
         # Start server in background
-        server = create_server(temp_scenario_file)
+        server = create_server(temp_scenario_file, port=server_port)
         server_task = asyncio.create_task(server.start())
 
         try:
             # Wait for server to be ready
             await asyncio.sleep(0.5)
 
-            # Make POST request to evaluate endpoint
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            # Make POST request to evaluate endpoint (use dynamic port)
+            test_url = f"http://localhost:{server_port}"
+            async with httpx.AsyncClient(timeout=30.0, trust_env=False) as client:
                 response = await client.post(
-                    f"{base_url}/evaluate",
+                    f"{test_url}/evaluate",
                     json={"task_ids": ["task_001"]},
                 )
 
@@ -225,7 +246,7 @@ class TestEvaluateEndpoint:
 
     @pytest.mark.asyncio
     async def test_evaluate_uses_executor(
-        self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch
+        self, temp_scenario_file: Path, server_port: int, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Implement DefaultRequestHandler with Executor."""
         from green.server import create_server
@@ -233,7 +254,7 @@ class TestEvaluateEndpoint:
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
         # Create server instance
-        server = create_server(temp_scenario_file)
+        server = create_server(temp_scenario_file, port=server_port)
 
         # Verify server has executor configured
         assert hasattr(server, "executor") or hasattr(server.app, "executor")
@@ -244,7 +265,11 @@ class TestHealthEndpoint:
 
     @pytest.mark.asyncio
     async def test_health_endpoint_exists(
-        self, temp_scenario_file: Path, base_url: str, monkeypatch: pytest.MonkeyPatch
+        self,
+        temp_scenario_file: Path,
+        server_port: int,
+        base_url: str,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Health check endpoint: GET /health."""
         from green.server import create_server
@@ -252,16 +277,17 @@ class TestHealthEndpoint:
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
         # Start server in background
-        server = create_server(temp_scenario_file)
+        server = create_server(temp_scenario_file, port=server_port)
         server_task = asyncio.create_task(server.start())
 
         try:
             # Wait for server to be ready
             await asyncio.sleep(0.5)
 
-            # Make request to health endpoint
-            async with httpx.AsyncClient() as client:
-                response = await client.get(f"{base_url}/health")
+            # Make request to health endpoint (use dynamic port)
+            test_url = f"http://localhost:{server_port}"
+            async with httpx.AsyncClient(trust_env=False) as client:
+                response = await client.get(f"{test_url}/health")
 
             # Verify health check returns OK
             assert response.status_code == 200
@@ -274,7 +300,11 @@ class TestHealthEndpoint:
 
     @pytest.mark.asyncio
     async def test_health_returns_json_status(
-        self, temp_scenario_file: Path, base_url: str, monkeypatch: pytest.MonkeyPatch
+        self,
+        temp_scenario_file: Path,
+        server_port: int,
+        base_url: str,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Health endpoint should return JSON with status."""
         from green.server import create_server
@@ -282,16 +312,17 @@ class TestHealthEndpoint:
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
         # Start server in background
-        server = create_server(temp_scenario_file)
+        server = create_server(temp_scenario_file, port=server_port)
         server_task = asyncio.create_task(server.start())
 
         try:
             # Wait for server to be ready
             await asyncio.sleep(0.5)
 
-            # Get health status
-            async with httpx.AsyncClient() as client:
-                response = await client.get(f"{base_url}/health")
+            # Get health status (use dynamic port)
+            test_url = f"http://localhost:{server_port}"
+            async with httpx.AsyncClient(trust_env=False) as client:
+                response = await client.get(f"{test_url}/health")
 
             health_data = response.json()
 
@@ -313,6 +344,7 @@ class TestRequestLogging:
     async def test_requests_are_logged_with_request_ids(
         self,
         temp_scenario_file: Path,
+        server_port: int,
         base_url: str,
         monkeypatch: pytest.MonkeyPatch,
         caplog: Any,
@@ -323,16 +355,17 @@ class TestRequestLogging:
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
         # Start server in background
-        server = create_server(temp_scenario_file)
+        server = create_server(temp_scenario_file, port=server_port)
         server_task = asyncio.create_task(server.start())
 
         try:
             # Wait for server to be ready
             await asyncio.sleep(0.5)
 
-            # Make request to trigger logging
-            async with httpx.AsyncClient() as client:
-                await client.get(f"{base_url}/health")
+            # Make request to trigger logging (use dynamic port)
+            test_url = f"http://localhost:{server_port}"
+            async with httpx.AsyncClient(trust_env=False) as client:
+                await client.get(f"{test_url}/health")
 
             # Verify request was logged with request ID
             # Note: This will check that logging infrastructure is in place
@@ -351,7 +384,7 @@ class TestGracefulShutdown:
 
     @pytest.mark.asyncio
     async def test_server_handles_sigterm_gracefully(
-        self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch
+        self, temp_scenario_file: Path, server_port: int, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Graceful shutdown on SIGTERM."""
         from green.server import create_server
@@ -359,14 +392,14 @@ class TestGracefulShutdown:
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
         # Create server instance
-        server = create_server(temp_scenario_file)
+        server = create_server(temp_scenario_file, port=server_port)
 
         # Verify server has shutdown method
         assert hasattr(server, "shutdown") or hasattr(server, "stop")
 
     @pytest.mark.asyncio
     async def test_server_shutdown_completes_cleanly(
-        self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch
+        self, temp_scenario_file: Path, server_port: int, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Server shutdown should complete without errors."""
         from green.server import create_server
@@ -374,7 +407,7 @@ class TestGracefulShutdown:
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
         # Start server
-        server = create_server(temp_scenario_file)
+        server = create_server(temp_scenario_file, port=server_port)
         server_task = asyncio.create_task(server.start())
 
         try:
@@ -401,7 +434,11 @@ class TestServerIntegration:
 
     @pytest.mark.asyncio
     async def test_server_serves_all_required_endpoints(
-        self, temp_scenario_file: Path, base_url: str, monkeypatch: pytest.MonkeyPatch
+        self,
+        temp_scenario_file: Path,
+        server_port: int,
+        base_url: str,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Server should serve all required A2A endpoints."""
         from green.server import create_server
@@ -409,19 +446,18 @@ class TestServerIntegration:
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
         # Start server in background
-        server = create_server(temp_scenario_file)
+        server = create_server(temp_scenario_file, port=server_port)
         server_task = asyncio.create_task(server.start())
 
         try:
             # Wait for server to be ready
             await asyncio.sleep(0.5)
 
-            async with httpx.AsyncClient() as client:
-                # Test all required endpoints exist
-                health_response = await client.get(f"{base_url}/health")
-                agent_card_response = await client.get(
-                    f"{base_url}/.well-known/agent-card.json"
-                )
+            # Test all required endpoints exist (use dynamic port)
+            test_url = f"http://localhost:{server_port}"
+            async with httpx.AsyncClient(trust_env=False) as client:
+                health_response = await client.get(f"{test_url}/health")
+                agent_card_response = await client.get(f"{test_url}/.well-known/agent-card.json")
 
                 # Verify all endpoints are accessible
                 assert health_response.status_code == 200
