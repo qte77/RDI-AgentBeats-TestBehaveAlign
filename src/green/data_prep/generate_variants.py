@@ -60,9 +60,7 @@ def generate_buggy(task_dir: Path) -> None:
 
     # Get bug pattern for this task
     if task_id not in BUG_PATTERNS:
-        logger.warning(
-            "No bug pattern found for %s, using default patterns", task_id
-        )
+        logger.warning("No bug pattern found for %s, using default patterns", task_id)
         # Try multiple default patterns
         default_patterns = [
             {"old": "return True", "new": "return False"},

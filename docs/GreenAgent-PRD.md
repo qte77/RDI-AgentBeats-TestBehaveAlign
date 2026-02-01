@@ -38,7 +38,7 @@ The Green Agent is an automated test quality evaluator that measures how well AI
 - Create directory structure with pathlib
 
 **Files**:
-- `scripts/data_prep/download_evalplus.py`
+- `src/green/data_prep/download_evalplus.py`
 
 ---
 
@@ -65,7 +65,7 @@ The Green Agent is an automated test quality evaluator that measures how well AI
 - Validate buggy code differs from correct code
 
 **Files**:
-- `scripts/data_prep/generate_variants.py`
+- `src/green/data_prep/generate_variants.py`
 
 ---
 
@@ -89,7 +89,7 @@ The Green Agent is an automated test quality evaluator that measures how well AI
 - Extract function name from spec or metadata
 
 **Files**:
-- `scripts/data_prep/generate_bdd.py`
+- `src/green/data_prep/generate_bdd.py`
 
 ---
 

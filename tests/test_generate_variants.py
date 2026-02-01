@@ -59,7 +59,7 @@ class TestGenerateVariants:
         self, temp_task_dir: Path, cleanup_temp_dir: Path
     ) -> None:
         """Generate buggy.py in implementation directory."""
-        from scripts.data_prep.generate_variants import generate_buggy
+        from green.data_prep.generate_variants import generate_buggy
 
         generate_buggy(temp_task_dir)
 
@@ -70,7 +70,7 @@ class TestGenerateVariants:
         self, temp_task_dir: Path, cleanup_temp_dir: Path
     ) -> None:
         """Generate reads correct.py from task directory."""
-        from scripts.data_prep.generate_variants import generate_buggy
+        from green.data_prep.generate_variants import generate_buggy
 
         # Should not crash when correct.py exists
         generate_buggy(temp_task_dir)
@@ -82,7 +82,7 @@ class TestGenerateVariants:
         self, temp_task_dir: Path, cleanup_temp_dir: Path
     ) -> None:
         """Generated buggy.py contains injected defect based on BUG_PATTERNS."""
-        from scripts.data_prep.generate_variants import generate_buggy
+        from green.data_prep.generate_variants import generate_buggy
 
         generate_buggy(temp_task_dir)
 
@@ -97,7 +97,7 @@ class TestGenerateVariants:
         self, temp_task_dir: Path, cleanup_temp_dir: Path
     ) -> None:
         """BUG_PATTERNS dict maps task_id to injection rules."""
-        from scripts.data_prep.generate_variants import BUG_PATTERNS
+        from green.data_prep.generate_variants import BUG_PATTERNS
 
         # BUG_PATTERNS should be a dict
         assert isinstance(BUG_PATTERNS, dict), "BUG_PATTERNS should be a dictionary"
@@ -109,7 +109,7 @@ class TestGenerateVariants:
         self, temp_task_dir: Path, cleanup_temp_dir: Path
     ) -> None:
         """Bug injection uses string replacement (simple substitution)."""
-        from scripts.data_prep.generate_variants import generate_buggy
+        from green.data_prep.generate_variants import generate_buggy
 
         # Create a known correct.py with specific content
         correct_file = temp_task_dir / "implementation" / "correct.py"
@@ -130,7 +130,7 @@ class TestGenerateVariants:
         self, temp_task_dir: Path, cleanup_temp_dir: Path
     ) -> None:
         """Validation ensures buggy code differs from correct code."""
-        from scripts.data_prep.generate_variants import generate_buggy
+        from green.data_prep.generate_variants import generate_buggy
 
         generate_buggy(temp_task_dir)
 
@@ -144,7 +144,7 @@ class TestGenerateVariants:
         self, temp_task_dir: Path, cleanup_temp_dir: Path
     ) -> None:
         """Extract task_id from directory name (e.g., task_001_has_close_elements -> task_001)."""
-        from scripts.data_prep.generate_variants import generate_buggy
+        from green.data_prep.generate_variants import generate_buggy
 
         # Directory name is task_001_has_close_elements
         # Should extract task_001 or use full name as key
@@ -155,7 +155,7 @@ class TestGenerateVariants:
 
     def test_bug_patterns_structure(self) -> None:
         """BUG_PATTERNS has expected structure with old/new replacement pairs."""
-        from scripts.data_prep.generate_variants import BUG_PATTERNS
+        from green.data_prep.generate_variants import BUG_PATTERNS
 
         # Check structure - should be dict mapping task_id to replacement rules
         assert isinstance(BUG_PATTERNS, dict)
@@ -170,7 +170,7 @@ class TestGenerateVariants:
 
     def test_generate_variants_main_function(self, tmp_path: Path) -> None:
         """Main function processes all tasks in data directory."""
-        from scripts.data_prep.generate_variants import generate_variants
+        from green.data_prep.generate_variants import generate_variants
 
         # Create a minimal task structure
         data_dir = tmp_path / "data" / "tasks" / "tdd" / "python"
@@ -195,7 +195,7 @@ class TestGenerateVariants:
         """Generated buggy.py should be syntactically valid Python."""
         import ast
 
-        from scripts.data_prep.generate_variants import generate_buggy
+        from green.data_prep.generate_variants import generate_buggy
 
         generate_buggy(temp_task_dir)
 
@@ -210,10 +210,10 @@ class TestGenerateVariants:
 
     def test_bug_patterns_covers_task_001(self) -> None:
         """BUG_PATTERNS includes pattern for task_001_has_close_elements."""
-        from scripts.data_prep.generate_variants import BUG_PATTERNS
+        from green.data_prep.generate_variants import BUG_PATTERNS
 
         # Should have a pattern for the first task
         task_id = "task_001_has_close_elements"
-        assert task_id in BUG_PATTERNS or any(
-            "task_001" in key for key in BUG_PATTERNS.keys()
-        ), f"BUG_PATTERNS should include pattern for {task_id}"
+        assert task_id in BUG_PATTERNS or any("task_001" in key for key in BUG_PATTERNS.keys()), (
+            f"BUG_PATTERNS should include pattern for {task_id}"
+        )

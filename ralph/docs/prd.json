@@ -22,7 +22,7 @@
         "Create directory structure with pathlib"
       ],
       "files": [
-        "scripts/data_prep/download_evalplus.py"
+        "src/green/data_prep/download_evalplus.py"
       ],
       "passes": true,
       "completed_at": "2026-02-01T02:39:00Z",
@@ -41,7 +41,7 @@
         "Validate buggy code differs from correct code"
       ],
       "files": [
-        "scripts/data_prep/generate_variants.py"
+        "src/green/data_prep/generate_variants.py"
       ],
       "passes": true,
       "completed_at": "2026-02-01T05:52:00Z",
@@ -62,7 +62,7 @@
         "Extract function name from spec or metadata"
       ],
       "files": [
-        "scripts/data_prep/generate_bdd.py"
+        "src/green/data_prep/generate_bdd.py"
       ],
       "passes": true,
       "completed_at": "2026-02-01T06:10:00Z",

@@ -35,7 +35,9 @@ def has_close_elements(numbers: List[float], threshold: float) -> bool:
     spec_file.write_text(spec_content)
 
     # Create correct.py
-    correct_content = spec_content + '''    for idx, elem in enumerate(numbers):
+    correct_content = (
+        spec_content
+        + """    for idx, elem in enumerate(numbers):
         for idx2, elem2 in enumerate(numbers):
             if idx != idx2:
                 distance = abs(elem - elem2)
@@ -43,7 +45,8 @@ def has_close_elements(numbers: List[float], threshold: float) -> bool:
                     return True
 
     return False
-'''
+"""
+    )
 
     correct_file = impl_dir / "correct.py"
     correct_file.write_text(correct_content)
@@ -78,7 +81,7 @@ class TestGenerateBDD:
         self, temp_tdd_task_dir: Path, cleanup_temp_dir: Path
     ) -> None:
         """Parse >>> format docstring examples from spec.py."""
-        from scripts.data_prep.generate_bdd import parse_docstring_examples
+        from green.data_prep.generate_bdd import parse_docstring_examples
 
         spec_file = temp_tdd_task_dir / "spec.py"
         examples = parse_docstring_examples(spec_file)
@@ -98,7 +101,7 @@ class TestGenerateBDD:
         self, temp_tdd_task_dir: Path, cleanup_temp_dir: Path
     ) -> None:
         """Generate Gherkin spec.feature file from TDD spec."""
-        from scripts.data_prep.generate_bdd import generate_bdd_task
+        from green.data_prep.generate_bdd import generate_bdd_task
 
         bdd_root = temp_tdd_task_dir.parent.parent / "bdd" / "python"
         generate_bdd_task(temp_tdd_task_dir, bdd_root)
@@ -113,7 +116,7 @@ class TestGenerateBDD:
         self, temp_tdd_task_dir: Path, cleanup_temp_dir: Path
     ) -> None:
         """Generated Gherkin has Feature description from docstring."""
-        from scripts.data_prep.generate_bdd import generate_bdd_task
+        from green.data_prep.generate_bdd import generate_bdd_task
 
         bdd_root = temp_tdd_task_dir.parent.parent / "bdd" / "python"
         generate_bdd_task(temp_tdd_task_dir, bdd_root)
@@ -130,7 +133,7 @@ class TestGenerateBDD:
         self, temp_tdd_task_dir: Path, cleanup_temp_dir: Path
     ) -> None:
         """Generated Gherkin has Scenarios from docstring examples."""
-        from scripts.data_prep.generate_bdd import generate_bdd_task
+        from green.data_prep.generate_bdd import generate_bdd_task
 
         bdd_root = temp_tdd_task_dir.parent.parent / "bdd" / "python"
         generate_bdd_task(temp_tdd_task_dir, bdd_root)
@@ -146,7 +149,7 @@ class TestGenerateBDD:
         self, temp_tdd_task_dir: Path, cleanup_temp_dir: Path
     ) -> None:
         """Generated Gherkin has Given/When/Then steps for each example."""
-        from scripts.data_prep.generate_bdd import generate_bdd_task
+        from green.data_prep.generate_bdd import generate_bdd_task
 
         bdd_root = temp_tdd_task_dir.parent.parent / "bdd" / "python"
         generate_bdd_task(temp_tdd_task_dir, bdd_root)
@@ -164,7 +167,7 @@ class TestGenerateBDD:
         self, temp_tdd_task_dir: Path, cleanup_temp_dir: Path
     ) -> None:
         """Create BDD task structure in data/tasks/bdd/python/task_*/."""
-        from scripts.data_prep.generate_bdd import generate_bdd_task
+        from green.data_prep.generate_bdd import generate_bdd_task
 
         bdd_root = temp_tdd_task_dir.parent.parent / "bdd" / "python"
         generate_bdd_task(temp_tdd_task_dir, bdd_root)
@@ -178,7 +181,7 @@ class TestGenerateBDD:
         self, temp_tdd_task_dir: Path, cleanup_temp_dir: Path
     ) -> None:
         """Symlink implementation/ directory to reuse TDD implementations."""
-        from scripts.data_prep.generate_bdd import generate_bdd_task
+        from green.data_prep.generate_bdd import generate_bdd_task
 
         bdd_root = temp_tdd_task_dir.parent.parent / "bdd" / "python"
         generate_bdd_task(temp_tdd_task_dir, bdd_root)
@@ -197,7 +200,7 @@ class TestGenerateBDD:
         self, temp_tdd_task_dir: Path, cleanup_temp_dir: Path
     ) -> None:
         """Generate BDD metadata.json with track='bdd' and tdd_source reference."""
-        from scripts.data_prep.generate_bdd import generate_bdd_task
+        from green.data_prep.generate_bdd import generate_bdd_task
 
         bdd_root = temp_tdd_task_dir.parent.parent / "bdd" / "python"
         generate_bdd_task(temp_tdd_task_dir, bdd_root)
@@ -217,7 +220,7 @@ class TestGenerateBDD:
         self, temp_tdd_task_dir: Path, cleanup_temp_dir: Path
     ) -> None:
         """Extract function name from spec.py or metadata.json."""
-        from scripts.data_prep.generate_bdd import extract_function_name
+        from green.data_prep.generate_bdd import extract_function_name
 
         # Should extract from spec.py using AST or regex
         function_name = extract_function_name(temp_tdd_task_dir)
@@ -227,7 +230,7 @@ class TestGenerateBDD:
         self, temp_tdd_task_dir: Path, cleanup_temp_dir: Path
     ) -> None:
         """Use regex to parse >>> docstring examples."""
-        from scripts.data_prep.generate_bdd import parse_docstring_examples
+        from green.data_prep.generate_bdd import parse_docstring_examples
 
         spec_file = temp_tdd_task_dir / "spec.py"
         examples = parse_docstring_examples(spec_file)
@@ -239,7 +242,7 @@ class TestGenerateBDD:
         self, temp_tdd_task_dir: Path, cleanup_temp_dir: Path
     ) -> None:
         """Generate relative symlinks for implementation reuse."""
-        from scripts.data_prep.generate_bdd import generate_bdd_task
+        from green.data_prep.generate_bdd import generate_bdd_task
 
         bdd_root = temp_tdd_task_dir.parent.parent / "bdd" / "python"
         generate_bdd_task(temp_tdd_task_dir, bdd_root)
@@ -253,7 +256,7 @@ class TestGenerateBDD:
 
     def test_generate_bdd_for_all_tasks(self, tmp_path: Path) -> None:
         """Process all TDD tasks and generate BDD equivalents."""
-        from scripts.data_prep.generate_bdd import generate_bdd_from_tdd
+        from green.data_prep.generate_bdd import generate_bdd_from_tdd
 
         # Create minimal TDD structure with 2 tasks
         tdd_root = tmp_path / "tdd" / "python"

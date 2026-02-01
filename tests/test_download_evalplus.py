@@ -33,7 +33,7 @@ class TestDownloadEvalPlus:
         self, temp_data_dir: Path, cleanup_data_dir: Path
     ) -> None:
         """Download creates task_001 through task_005 directories."""
-        from scripts.data_prep.download_evalplus import download_tasks
+        from green.data_prep.download_evalplus import download_tasks
 
         download_tasks(output_dir=temp_data_dir, task_range=(0, 5))
 
@@ -45,7 +45,7 @@ class TestDownloadEvalPlus:
 
     def test_download_creates_spec_py(self, temp_data_dir: Path, cleanup_data_dir: Path) -> None:
         """Download creates spec.py with function signature and docstring."""
-        from scripts.data_prep.download_evalplus import download_tasks
+        from green.data_prep.download_evalplus import download_tasks
 
         download_tasks(output_dir=temp_data_dir, task_range=(0, 1))
 
@@ -66,7 +66,7 @@ class TestDownloadEvalPlus:
         self, temp_data_dir: Path, cleanup_data_dir: Path
     ) -> None:
         """Download creates implementation/correct.py with canonical solution."""
-        from scripts.data_prep.download_evalplus import download_tasks
+        from green.data_prep.download_evalplus import download_tasks
 
         download_tasks(output_dir=temp_data_dir, task_range=(0, 1))
 
@@ -86,7 +86,7 @@ class TestDownloadEvalPlus:
         self, temp_data_dir: Path, cleanup_data_dir: Path
     ) -> None:
         """Download creates metadata.json with required fields."""
-        from scripts.data_prep.download_evalplus import download_tasks
+        from green.data_prep.download_evalplus import download_tasks
 
         download_tasks(output_dir=temp_data_dir, task_range=(0, 1))
 
@@ -113,7 +113,7 @@ class TestDownloadEvalPlus:
         self, temp_data_dir: Path, cleanup_data_dir: Path
     ) -> None:
         """Download maps HumanEval IDs correctly (e.g., 0 -> task_001_has_close_elements)."""
-        from scripts.data_prep.download_evalplus import download_tasks
+        from green.data_prep.download_evalplus import download_tasks
 
         download_tasks(output_dir=temp_data_dir, task_range=(0, 1))
 
@@ -133,7 +133,7 @@ class TestDownloadEvalPlus:
         """Download handles evalplus import errors gracefully."""
         # This test verifies error handling exists
         # Actual implementation should catch ImportError for evalplus
-        from scripts.data_prep.download_evalplus import download_tasks
+        from green.data_prep.download_evalplus import download_tasks
 
         # Should not crash even if evalplus has issues
         # Just verify function exists and is callable
@@ -145,7 +145,7 @@ class TestDownloadEvalPlus:
         """Download logs progress and success messages."""
         import logging
 
-        from scripts.data_prep.download_evalplus import download_tasks
+        from green.data_prep.download_evalplus import download_tasks
 
         # Ensure logging is captured at INFO level
         caplog.set_level(logging.INFO)
@@ -158,7 +158,7 @@ class TestDownloadEvalPlus:
 
     def test_download_uses_pathlib(self, temp_data_dir: Path, cleanup_data_dir: Path) -> None:
         """Download uses pathlib for cross-platform path handling."""
-        from scripts.data_prep.download_evalplus import download_tasks
+        from green.data_prep.download_evalplus import download_tasks
 
         # Verify function accepts Path objects
         assert isinstance(temp_data_dir, Path)
@@ -172,7 +172,7 @@ class TestDownloadEvalPlus:
         self, temp_data_dir: Path, cleanup_data_dir: Path
     ) -> None:
         """Verify complete directory structure for a single task."""
-        from scripts.data_prep.download_evalplus import download_tasks
+        from green.data_prep.download_evalplus import download_tasks
 
         download_tasks(output_dir=temp_data_dir, task_range=(0, 1))
 
@@ -191,7 +191,7 @@ class TestDownloadEvalPlus:
 
     def test_multiple_tasks_downloaded(self, temp_data_dir: Path, cleanup_data_dir: Path) -> None:
         """Download creates all 5 tasks (0-4 from HumanEval)."""
-        from scripts.data_prep.download_evalplus import download_tasks
+        from green.data_prep.download_evalplus import download_tasks
 
         download_tasks(output_dir=temp_data_dir, task_range=(0, 5))
 
