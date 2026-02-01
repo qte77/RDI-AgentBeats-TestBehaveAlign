@@ -32,41 +32,43 @@ def temp_tdd_task(tmp_path: Path) -> Path:
 @pytest.fixture
 def valid_tdd_test_code() -> str:
     """Valid TDD test code that should pass against correct implementation."""
-    return '''
+    return """
 def test_example_function():
     from correct import example_function
     assert example_function(5) == 10
     assert example_function(0) == 0
     assert example_function(-3) == -6
-'''
+"""
 
 
 @pytest.fixture
 def failing_tdd_test_code() -> str:
     """Test code that should fail even against correct implementation."""
-    return '''
+    return """
 def test_example_function():
     from correct import example_function
     assert example_function(5) == 999  # Wrong expectation
-'''
+"""
 
 
 @pytest.fixture
 def timeout_test_code() -> str:
     """Test code that will exceed timeout."""
-    return '''
+    return """
 import time
 
 def test_timeout():
     time.sleep(60)  # Exceeds 30-second timeout
     assert True
-'''
+"""
 
 
 class TestIsolatedTestEnvironment:
     """Test suite for creating isolated test environments."""
 
-    def test_create_isolated_temp_directory(self, temp_tdd_task: Path, valid_tdd_test_code: str) -> None:
+    def test_create_isolated_temp_directory(
+        self, temp_tdd_task: Path, valid_tdd_test_code: str
+    ) -> None:
         """Create isolated test environment (temp directory per task)."""
         from green.agent import execute_test_against_correct
 
@@ -74,7 +76,7 @@ class TestIsolatedTestEnvironment:
         result = execute_test_against_correct(
             test_code=valid_tdd_test_code,
             correct_implementation=(temp_tdd_task / "implementation" / "correct.py").read_text(),
-            track="tdd"
+            track="tdd",
         )
 
         # Result should exist (temp dir was created and used)
@@ -87,22 +89,22 @@ class TestIsolatedTestEnvironment:
         result = execute_test_against_correct(
             test_code=valid_tdd_test_code,
             correct_implementation=(temp_tdd_task / "implementation" / "correct.py").read_text(),
-            track="tdd"
+            track="tdd",
         )
 
         # Should have written test code to a file and executed it
         assert result is not None
 
-    def test_copy_correct_implementation_to_test_env(self, temp_tdd_task: Path, valid_tdd_test_code: str) -> None:
+    def test_copy_correct_implementation_to_test_env(
+        self, temp_tdd_task: Path, valid_tdd_test_code: str
+    ) -> None:
         """Copy correct.py to test environment."""
         from green.agent import execute_test_against_correct
 
         correct_impl = (temp_tdd_task / "implementation" / "correct.py").read_text()
 
         result = execute_test_against_correct(
-            test_code=valid_tdd_test_code,
-            correct_implementation=correct_impl,
-            track="tdd"
+            test_code=valid_tdd_test_code, correct_implementation=correct_impl, track="tdd"
         )
 
         # Should have copied correct.py to temp dir for import
@@ -121,14 +123,12 @@ class TestPytestExecution:
         correct_impl = (temp_tdd_task / "implementation" / "correct.py").read_text()
 
         result = execute_test_against_correct(
-            test_code=valid_tdd_test_code,
-            correct_implementation=correct_impl,
-            track="tdd"
+            test_code=valid_tdd_test_code, correct_implementation=correct_impl, track="tdd"
         )
 
         assert result is not None
         # Should execute pytest and return result
-        assert hasattr(result, 'exit_code')
+        assert hasattr(result, "exit_code")
 
     def test_execute_pytest_bdd_for_bdd(self, tmp_path: Path) -> None:
         """Execute pytest-bdd (BDD) on feature and step files."""
@@ -142,14 +142,12 @@ def test_example_feature():
     assert example_function(5) == 10
 '''
 
-        correct_impl = '''def example_function(x: int) -> int:
+        correct_impl = """def example_function(x: int) -> int:
     return x * 2
-'''
+"""
 
         result = execute_test_against_correct(
-            test_code=bdd_test_code,
-            correct_implementation=correct_impl,
-            track="bdd"
+            test_code=bdd_test_code, correct_implementation=correct_impl, track="bdd"
         )
 
         assert result is not None
@@ -165,12 +163,10 @@ class TestResultCapture:
         correct_impl = (temp_tdd_task / "implementation" / "correct.py").read_text()
 
         result = execute_test_against_correct(
-            test_code=valid_tdd_test_code,
-            correct_implementation=correct_impl,
-            track="tdd"
+            test_code=valid_tdd_test_code, correct_implementation=correct_impl, track="tdd"
         )
 
-        assert hasattr(result, 'exit_code')
+        assert hasattr(result, "exit_code")
         assert isinstance(result.exit_code, int)
         # Exit code 0 = success
         assert result.exit_code == 0
@@ -182,12 +178,10 @@ class TestResultCapture:
         correct_impl = (temp_tdd_task / "implementation" / "correct.py").read_text()
 
         result = execute_test_against_correct(
-            test_code=valid_tdd_test_code,
-            correct_implementation=correct_impl,
-            track="tdd"
+            test_code=valid_tdd_test_code, correct_implementation=correct_impl, track="tdd"
         )
 
-        assert hasattr(result, 'stdout')
+        assert hasattr(result, "stdout")
         assert isinstance(result.stdout, str)
 
     def test_capture_stderr(self, temp_tdd_task: Path, valid_tdd_test_code: str) -> None:
@@ -197,12 +191,10 @@ class TestResultCapture:
         correct_impl = (temp_tdd_task / "implementation" / "correct.py").read_text()
 
         result = execute_test_against_correct(
-            test_code=valid_tdd_test_code,
-            correct_implementation=correct_impl,
-            track="tdd"
+            test_code=valid_tdd_test_code, correct_implementation=correct_impl, track="tdd"
         )
 
-        assert hasattr(result, 'stderr')
+        assert hasattr(result, "stderr")
         assert isinstance(result.stderr, str)
 
     def test_capture_execution_time(self, temp_tdd_task: Path, valid_tdd_test_code: str) -> None:
@@ -212,12 +204,10 @@ class TestResultCapture:
         correct_impl = (temp_tdd_task / "implementation" / "correct.py").read_text()
 
         result = execute_test_against_correct(
-            test_code=valid_tdd_test_code,
-            correct_implementation=correct_impl,
-            track="tdd"
+            test_code=valid_tdd_test_code, correct_implementation=correct_impl, track="tdd"
         )
 
-        assert hasattr(result, 'execution_time')
+        assert hasattr(result, "execution_time")
         assert isinstance(result.execution_time, float)
         assert result.execution_time >= 0
 
@@ -225,31 +215,31 @@ class TestResultCapture:
 class TestBinaryResult:
     """Test suite for returning binary PASS/FAIL result."""
 
-    def test_return_pass_for_successful_tests(self, temp_tdd_task: Path, valid_tdd_test_code: str) -> None:
+    def test_return_pass_for_successful_tests(
+        self, temp_tdd_task: Path, valid_tdd_test_code: str
+    ) -> None:
         """Return binary result: PASS (exit code 0)."""
         from green.agent import execute_test_against_correct
 
         correct_impl = (temp_tdd_task / "implementation" / "correct.py").read_text()
 
         result = execute_test_against_correct(
-            test_code=valid_tdd_test_code,
-            correct_implementation=correct_impl,
-            track="tdd"
+            test_code=valid_tdd_test_code, correct_implementation=correct_impl, track="tdd"
         )
 
         assert result.passed is True
         assert result.exit_code == 0
 
-    def test_return_fail_for_failing_tests(self, temp_tdd_task: Path, failing_tdd_test_code: str) -> None:
+    def test_return_fail_for_failing_tests(
+        self, temp_tdd_task: Path, failing_tdd_test_code: str
+    ) -> None:
         """Return binary result: FAIL (non-zero exit code)."""
         from green.agent import execute_test_against_correct
 
         correct_impl = (temp_tdd_task / "implementation" / "correct.py").read_text()
 
         result = execute_test_against_correct(
-            test_code=failing_tdd_test_code,
-            correct_implementation=correct_impl,
-            track="tdd"
+            test_code=failing_tdd_test_code, correct_implementation=correct_impl, track="tdd"
         )
 
         assert result.passed is False
@@ -263,13 +253,11 @@ class TestTimeout:
         """Implement 30-second timeout per test run."""
         from green.agent import execute_test_against_correct
 
-        correct_impl = '''def dummy(): pass'''
+        correct_impl = """def dummy(): pass"""
 
         # Should timeout and return failure
         result = execute_test_against_correct(
-            test_code=timeout_test_code,
-            correct_implementation=correct_impl,
-            track="tdd"
+            test_code=timeout_test_code, correct_implementation=correct_impl, track="tdd"
         )
 
         # Timeout should result in failure
@@ -289,9 +277,7 @@ class TestCleanup:
 
         # Execute test
         result = execute_test_against_correct(
-            test_code=valid_tdd_test_code,
-            correct_implementation=correct_impl,
-            track="tdd"
+            test_code=valid_tdd_test_code, correct_implementation=correct_impl, track="tdd"
         )
 
         assert result is not None
@@ -302,34 +288,256 @@ class TestCleanup:
 class TestSubprocessIsolation:
     """Test suite for using subprocess with timeout for isolation."""
 
-    def test_use_subprocess_for_isolation(self, temp_tdd_task: Path, valid_tdd_test_code: str) -> None:
+    def test_use_subprocess_for_isolation(
+        self, temp_tdd_task: Path, valid_tdd_test_code: str
+    ) -> None:
         """Use subprocess with timeout for isolation."""
         from green.agent import execute_test_against_correct
 
         correct_impl = (temp_tdd_task / "implementation" / "correct.py").read_text()
 
         result = execute_test_against_correct(
-            test_code=valid_tdd_test_code,
-            correct_implementation=correct_impl,
-            track="tdd"
+            test_code=valid_tdd_test_code, correct_implementation=correct_impl, track="tdd"
         )
 
         # Should run in isolated subprocess
         assert result is not None
-        assert hasattr(result, 'exit_code')
+        assert hasattr(result, "exit_code")
 
-    def test_capture_output_streams_for_debugging(self, temp_tdd_task: Path, valid_tdd_test_code: str) -> None:
+    def test_capture_output_streams_for_debugging(
+        self, temp_tdd_task: Path, valid_tdd_test_code: str
+    ) -> None:
         """Capture output streams for debugging."""
         from green.agent import execute_test_against_correct
 
         correct_impl = (temp_tdd_task / "implementation" / "correct.py").read_text()
 
         result = execute_test_against_correct(
-            test_code=valid_tdd_test_code,
-            correct_implementation=correct_impl,
-            track="tdd"
+            test_code=valid_tdd_test_code, correct_implementation=correct_impl, track="tdd"
         )
 
         # Should have stdout and stderr available for debugging
-        assert hasattr(result, 'stdout')
-        assert hasattr(result, 'stderr')
+        assert hasattr(result, "stdout")
+        assert hasattr(result, "stderr")
+
+
+# ============================================================================
+# STORY-009: Test execution against buggy.py
+# ============================================================================
+
+
+@pytest.fixture
+def temp_buggy_task(tmp_path: Path) -> Path:
+    """Create a temporary task directory with buggy implementation."""
+    task_dir = tmp_path / "task_001_buggy"
+    task_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create buggy.py implementation (off-by-one error)
+    impl_dir = task_dir / "implementation"
+    impl_dir.mkdir(parents=True, exist_ok=True)
+
+    buggy_py = impl_dir / "buggy.py"
+    buggy_py.write_text('''def example_function(x: int) -> int:
+    """Example function with bug."""
+    return x * 2 + 1  # Off-by-one error
+''')
+
+    return task_dir
+
+
+@pytest.fixture
+def good_test_code_detecting_bug() -> str:
+    """Test code that should detect the bug in buggy.py."""
+    return """
+def test_example_function():
+    from buggy import example_function
+    assert example_function(5) == 10
+    assert example_function(0) == 0
+    assert example_function(-3) == -6
+"""
+
+
+@pytest.fixture
+def weak_test_code_missing_bug() -> str:
+    """Weak test code that doesn't detect the bug."""
+    return """
+def test_example_function():
+    from buggy import example_function
+    # Only tests that it returns an integer, doesn't check values
+    result = example_function(5)
+    assert isinstance(result, int)
+"""
+
+
+class TestBuggyExecution:
+    """Test suite for executing tests against buggy.py (STORY-009)."""
+
+    def test_execute_against_buggy_implementation(
+        self, temp_buggy_task: Path, good_test_code_detecting_bug: str
+    ) -> None:
+        """Run tests against buggy.py instead of correct.py."""
+        from green.agent import execute_test_against_buggy
+
+        buggy_impl = (temp_buggy_task / "implementation" / "buggy.py").read_text()
+
+        result = execute_test_against_buggy(
+            test_code=good_test_code_detecting_bug,
+            buggy_implementation=buggy_impl,
+            track="tdd",
+        )
+
+        # Should execute and return result
+        assert result is not None
+        assert hasattr(result, "exit_code")
+
+    def test_expect_tests_to_fail_on_buggy_code(
+        self, temp_buggy_task: Path, good_test_code_detecting_bug: str
+    ) -> None:
+        """Expect tests to FAIL (detect injected bugs)."""
+        from green.agent import execute_test_against_buggy
+
+        buggy_impl = (temp_buggy_task / "implementation" / "buggy.py").read_text()
+
+        result = execute_test_against_buggy(
+            test_code=good_test_code_detecting_bug,
+            buggy_implementation=buggy_impl,
+            track="tdd",
+        )
+
+        # Tests should fail when run against buggy implementation
+        assert result.passed is False
+        assert result.exit_code != 0
+
+    def test_return_bug_detected_when_tests_fail(
+        self, temp_buggy_task: Path, good_test_code_detecting_bug: str
+    ) -> None:
+        """Return binary result: detected bug (FAIL)."""
+        from green.agent import execute_test_against_buggy
+
+        buggy_impl = (temp_buggy_task / "implementation" / "buggy.py").read_text()
+
+        result = execute_test_against_buggy(
+            test_code=good_test_code_detecting_bug,
+            buggy_implementation=buggy_impl,
+            track="tdd",
+        )
+
+        # Bug detected = tests failed = passed is False
+        assert result.passed is False
+
+    def test_return_bug_missed_when_tests_pass(
+        self, temp_buggy_task: Path, weak_test_code_missing_bug: str
+    ) -> None:
+        """Return binary result: missed bug (PASS)."""
+        from green.agent import execute_test_against_buggy
+
+        buggy_impl = (temp_buggy_task / "implementation" / "buggy.py").read_text()
+
+        result = execute_test_against_buggy(
+            test_code=weak_test_code_missing_bug,
+            buggy_implementation=buggy_impl,
+            track="tdd",
+        )
+
+        # Bug missed = tests passed = passed is True
+        assert result.passed is True
+        assert result.exit_code == 0
+
+
+class TestBuggyResultLogging:
+    """Test suite for logging test failures and distinguishing error types."""
+
+    def test_log_which_tests_failed(
+        self, temp_buggy_task: Path, good_test_code_detecting_bug: str
+    ) -> None:
+        """Log which specific tests failed and why."""
+        from green.agent import execute_test_against_buggy
+
+        buggy_impl = (temp_buggy_task / "implementation" / "buggy.py").read_text()
+
+        result = execute_test_against_buggy(
+            test_code=good_test_code_detecting_bug,
+            buggy_implementation=buggy_impl,
+            track="tdd",
+        )
+
+        # Should capture detailed failure information in stdout/stderr
+        assert result.stdout or result.stderr
+        # Should contain assertion failure information
+        assert "assert" in result.stdout.lower() or "assert" in result.stderr.lower()
+
+    def test_distinguish_assertion_failures_from_infrastructure_errors(
+        self, temp_buggy_task: Path
+    ) -> None:
+        """Distinguish assertion failures from import/syntax errors."""
+        from green.agent import execute_test_against_buggy
+
+        buggy_impl = (temp_buggy_task / "implementation" / "buggy.py").read_text()
+
+        # Test with syntax error (infrastructure issue)
+        syntax_error_test = """
+def test_syntax_error():
+    this is not valid python
+"""
+
+        result = execute_test_against_buggy(
+            test_code=syntax_error_test,
+            buggy_implementation=buggy_impl,
+            track="tdd",
+        )
+
+        # Should still capture the error
+        assert result.passed is False
+        # stderr or stdout should contain error details
+        assert result.stdout or result.stderr
+
+
+class TestBuggyIsolation:
+    """Test suite for reusing isolation infrastructure from Feature 8."""
+
+    def test_reuse_isolation_infrastructure(
+        self, temp_buggy_task: Path, good_test_code_detecting_bug: str
+    ) -> None:
+        """Reuse test execution infrastructure from Feature 8."""
+        from green.agent import execute_test_against_buggy
+
+        buggy_impl = (temp_buggy_task / "implementation" / "buggy.py").read_text()
+
+        result = execute_test_against_buggy(
+            test_code=good_test_code_detecting_bug,
+            buggy_implementation=buggy_impl,
+            track="tdd",
+        )
+
+        # Should use same isolated environment approach
+        assert result is not None
+        # Should have same result structure
+        assert hasattr(result, "exit_code")
+        assert hasattr(result, "stdout")
+        assert hasattr(result, "stderr")
+        assert hasattr(result, "execution_time")
+        assert hasattr(result, "passed")
+
+    def test_timeout_applies_to_buggy_execution(self, temp_buggy_task: Path) -> None:
+        """Same 30-second timeout applies to buggy.py execution."""
+        from green.agent import execute_test_against_buggy
+
+        buggy_impl = (temp_buggy_task / "implementation" / "buggy.py").read_text()
+
+        timeout_test = """
+import time
+
+def test_timeout():
+    time.sleep(60)  # Exceeds 30-second timeout
+    assert True
+"""
+
+        result = execute_test_against_buggy(
+            test_code=timeout_test,
+            buggy_implementation=buggy_impl,
+            track="tdd",
+        )
+
+        # Should timeout and fail
+        assert result.passed is False
+        assert result.execution_time <= 35  # Allow overhead
