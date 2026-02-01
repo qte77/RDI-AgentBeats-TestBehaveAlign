@@ -1,12 +1,32 @@
-# Green Agent User Stories
+# User Story: Green Agent
 
-## Epic: Automated Test Quality Evaluation
+## Problem Statement
+
+AI coding agents need objective evaluation of their test generation capabilities. Manual evaluation is inconsistent, time-consuming, and doesn't scale. The benchmark ecosystem requires an automated evaluator that can measure test quality through fault detection and mutation testing, producing standardized scores for leaderboard ranking.
+
+## Target Users
+
+- **Benchmark Administrators**: Run evaluations and review results
+- **AgentBeats Platform**: Orchestrates evaluation runs via A2A protocol
+- **Competition Participants**: Receive objective scores for their AI agents
+
+## Value Proposition
+
+Green Agent provides automated, reproducible test quality evaluation by:
+- Executing generated tests against correct and buggy implementations
+- Running mutation testing to measure test thoroughness
+- Computing composite scores using a standardized formula
+- Outputting results in AgentBeats-compatible JSON format
+
+## User Stories
+
+### Epic: Automated Test Quality Evaluation
 
 As a **benchmark administrator**, I need the Green Agent to automatically evaluate test quality so that I can objectively rank AI coding agents without manual intervention.
 
 ---
 
-## Story 1: Load Task Specifications
+### Story 1: Load Task Specifications
 
 **As a** Green Agent
 **I want to** load task specifications from the data directory
@@ -26,7 +46,7 @@ As a **benchmark administrator**, I need the Green Agent to automatically evalua
 
 ---
 
-## Story 2: Communicate with Purple Agent via A2A
+### Story 2: Communicate with Purple Agent via A2A
 
 **As a** Green Agent
 **I want to** send specifications to Purple Agent using A2A protocol
@@ -47,7 +67,7 @@ As a **benchmark administrator**, I need the Green Agent to automatically evalua
 
 ---
 
-## Story 3: Execute Tests Against Correct Implementation
+### Story 3: Execute Tests Against Correct Implementation
 
 **As a** Green Agent
 **I want to** run generated tests against correct.py
@@ -69,7 +89,7 @@ As a **benchmark administrator**, I need the Green Agent to automatically evalua
 
 ---
 
-## Story 4: Execute Tests Against Buggy Implementation
+### Story 4: Execute Tests Against Buggy Implementation
 
 **As a** Green Agent
 **I want to** run generated tests against buggy.py
@@ -88,7 +108,7 @@ As a **benchmark administrator**, I need the Green Agent to automatically evalua
 
 ---
 
-## Story 5: Calculate Fault Detection Rate
+### Story 5: Calculate Fault Detection Rate
 
 **As a** Green Agent
 **I want to** calculate fault detection rate for each task
@@ -110,7 +130,7 @@ fault_detection_rate = 1.0 if (passed_correct and failed_buggy) else 0.0
 
 ---
 
-## Story 6: Run Mutation Testing
+### Story 6: Run Mutation Testing
 
 **As a** Green Agent
 **I want to** run mutmut mutation testing on generated tests
@@ -131,7 +151,7 @@ fault_detection_rate = 1.0 if (passed_correct and failed_buggy) else 0.0
 
 ---
 
-## Story 7: Compute Composite Score
+### Story 7: Compute Composite Score
 
 **As a** Green Agent
 **I want to** calculate weighted composite score
@@ -151,7 +171,7 @@ score = (0.60 * mutation_score) + (0.40 * fault_detection_rate)
 
 ---
 
-## Story 8: Generate Results JSON
+### Story 8: Generate Results JSON
 
 **As a** Green Agent
 **I want to** output results in AgentBeats format
@@ -185,7 +205,7 @@ score = (0.60 * mutation_score) + (0.40 * fault_detection_rate)
 
 ---
 
-## Story 9: Serve A2A Endpoints
+### Story 9: Serve A2A Endpoints
 
 **As a** Green Agent
 **I want to** serve A2A HTTP endpoints
@@ -206,7 +226,7 @@ score = (0.60 * mutation_score) + (0.40 * fault_detection_rate)
 
 ---
 
-## Story 10: Handle Track Switching (TDD vs BDD)
+### Story 10: Handle Track Switching (TDD vs BDD)
 
 **As a** Green Agent
 **I want to** support both TDD and BDD evaluation modes
@@ -227,23 +247,44 @@ score = (0.60 * mutation_score) + (0.40 * fault_detection_rate)
 
 ---
 
-## Non-Functional Requirements
+## Success Criteria
 
-### Performance:
+- [ ] Green Agent successfully loads task specifications from both TDD and BDD tracks
+- [ ] A2A communication with Purple Agent completes without manual intervention
+- [ ] Tests execute correctly against both correct.py and buggy.py implementations
+- [ ] Fault detection rate accurately reflects test quality (1.0 when tests pass correct and fail buggy)
+- [ ] Mutation testing produces valid mutation scores using mutmut
+- [ ] Composite scores match formula: `0.60 × mutation + 0.40 × fault_detection`
+- [ ] Results JSON validates against AgentBeats schema
+- [ ] Full evaluation of 5 tasks completes in under 5 minutes
+
+## Constraints
+
+### Performance
 - Evaluate 5 tasks in under 5 minutes
 - Parallel test execution where possible
 
-### Reliability:
+### Reliability
 - Handle Purple Agent failures (timeouts, errors)
 - Retry A2A requests up to 3 times
 - Validate all inputs with Pydantic
 
-### Observability:
+### Observability
 - Structured logging (JSON format)
 - Log level configurable via env var
 - Include timing metrics in output
 
-### Security:
+### Security
 - Isolate test execution (no network access)
 - Sanitize test code (no file system writes outside /tmp)
 - Validate all Purple Agent responses
+
+## Out of Scope
+
+- **Test generation**: Green Agent evaluates tests, does not generate them (Purple Agent's responsibility)
+- **LLM integration**: No direct LLM calls; receives pre-generated tests from Purple Agent
+- **Multi-language support**: MVP supports Python only
+- **Custom scoring formulas**: Fixed formula for MVP; configurability deferred
+- **Distributed execution**: Single-machine evaluation only
+- **Historical tracking**: No persistence of past evaluation results
+- **Agent ranking UI**: Outputs JSON only; leaderboard display handled by AgentBeats platform

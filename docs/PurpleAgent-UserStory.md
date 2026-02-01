@@ -1,12 +1,32 @@
-# Purple Agent User Stories
+# User Story: Purple Agent
 
-## Epic: Baseline Test Generation from Specifications
+## Problem Statement
+
+The TestBehaveAlign benchmark requires a baseline test generation agent to serve as both a reference implementation and an evaluation subject. Without a standardized test generator, the benchmark cannot demonstrate end-to-end evaluation flow or provide a baseline score for comparison.
+
+## Target Users
+
+- **Green Agent**: Sends specifications and receives generated tests
+- **Benchmark Developers**: Use as reference implementation for A2A integration
+- **Competition Participants**: Compare their agents against baseline performance
+
+## Value Proposition
+
+Purple Agent provides LLM-powered test generation by:
+- Generating pytest tests from Python docstrings (TDD track)
+- Generating pytest-bdd step definitions from Gherkin features (BDD track)
+- Validating generated code for syntax correctness
+- Serving as A2A-compliant baseline for the benchmark
+
+## User Stories
+
+### Epic: Baseline Test Generation from Specifications
 
 As a **test subject (assessee agent)**, I need the Purple Agent to generate quality tests from specifications so that the Green Agent can evaluate my test generation capabilities.
 
 ---
 
-## Story 1: Serve A2A Discovery Endpoint
+### Story 1: Serve A2A Discovery Endpoint
 
 **As a** Purple Agent
 **I want to** serve the A2A agent-card endpoint
@@ -18,6 +38,11 @@ As a **test subject (assessee agent)**, I need the Purple Agent to generate qual
 - [ ] Include name, version, capabilities
 - [ ] Include supported tracks (TDD, BDD)
 - [ ] Follow A2A protocol specification
+- [ ] GET /health returns health status
+
+### Endpoints:
+- `GET /.well-known/agent-card.json` → `{name, version, capabilities, tracks}`
+- `GET /health` → `{status: "ok"}`
 
 ### Response Schema:
 ```json
@@ -31,7 +56,7 @@ As a **test subject (assessee agent)**, I need the Purple Agent to generate qual
 
 ---
 
-## Story 2: Receive Test Generation Requests
+### Story 2: Receive Test Generation Requests
 
 **As a** Purple Agent
 **I want to** receive test generation requests via A2A
@@ -52,7 +77,7 @@ As a **test subject (assessee agent)**, I need the Purple Agent to generate qual
 
 ---
 
-## Story 3: Generate TDD Tests from Docstrings
+### Story 3: Generate TDD Tests from Docstrings
 
 **As a** Purple Agent
 **I want to** generate pytest tests from Python docstrings
@@ -95,7 +120,7 @@ def test_has_close_elements_empty():
 
 ---
 
-## Story 4: Generate BDD Tests from Gherkin
+### Story 4: Generate BDD Tests from Gherkin
 
 **As a** Purple Agent
 **I want to** generate pytest-bdd step definitions from Gherkin features
@@ -146,7 +171,7 @@ def check_result(check_close, expected):
 
 ---
 
-## Story 5: Call LLM for Test Generation
+### Story 5: Call LLM for Test Generation
 
 **As a** Purple Agent
 **I want to** use OpenAI API to generate test code
@@ -196,7 +221,7 @@ Output:
 
 ---
 
-## Story 6: Validate Generated Test Code
+### Story 6: Validate Generated Test Code
 
 **As a** Purple Agent
 **I want to** validate generated test code before returning
@@ -239,7 +264,7 @@ def validate_test_code(code: str, track: str) -> bool:
 
 ---
 
-## Story 7: Handle Track Switching
+### Story 7: Handle Track Switching
 
 **As a** Purple Agent
 **I want to** support both TDD and BDD modes
@@ -265,7 +290,7 @@ def generate_tests(spec: str, track: str) -> str:
 
 ---
 
-## Story 8: Return Test Code to Green Agent
+### Story 8: Return Test Code to Green Agent
 
 **As a** Purple Agent
 **I want to** return generated test code in A2A format
@@ -292,7 +317,7 @@ def generate_tests(spec: str, track: str) -> str:
 
 ---
 
-## Story 9: Log All Requests
+### Story 9: Log All Requests
 
 **As a** Purple Agent
 **I want to** log all incoming requests and responses
@@ -321,7 +346,7 @@ def generate_tests(spec: str, track: str) -> str:
 
 ---
 
-## Story 10: Handle Configuration
+### Story 10: Handle Configuration
 
 **As a** Purple Agent
 **I want to** load configuration from environment
@@ -348,23 +373,45 @@ class PurpleSettings(BaseSettings):
 
 ---
 
-## Non-Functional Requirements
+## Success Criteria
 
-### Performance:
+- [ ] Purple Agent serves A2A endpoints on port 9010
+- [ ] Agent card endpoint returns valid metadata with supported tracks
+- [ ] TDD track generates syntactically valid pytest test code
+- [ ] BDD track generates syntactically valid pytest-bdd step definitions
+- [ ] Generated tests import from `solution.py` correctly
+- [ ] All generated code passes `ast.parse()` validation
+- [ ] Test generation completes in under 10 seconds per specification
+- [ ] Handles concurrent requests (up to 5) without failures
+
+## Constraints
+
+### Performance
 - Generate tests in under 10 seconds per spec
 - Handle concurrent requests (up to 5)
 
-### Reliability:
+### Reliability
 - Retry LLM calls on transient errors
 - Graceful degradation (return simple tests if LLM fails)
 - Health check endpoint
 
-### Observability:
+### Observability
 - Structured logging
 - Metrics: generation_time, token_usage, error_rate
 - Trace LLM API calls
 
-### Security:
+### Security
 - Validate all inputs
 - Sanitize LLM responses (no code injection)
 - Rate limit requests (10/min)
+
+## Out of Scope
+
+- **Test execution**: Purple Agent generates tests, does not execute them (Green Agent's responsibility)
+- **Scoring/evaluation**: No computation of mutation scores or fault detection rates
+- **Multiple LLM providers**: MVP uses OpenAI only; other providers deferred
+- **Test optimization**: No iterative refinement of generated tests
+- **Caching generated tests**: Each request generates fresh tests
+- **Multi-language support**: Python test generation only
+- **Custom prompt templates**: Fixed prompts for MVP; user-configurable prompts deferred
+- **Conversation memory**: Stateless request handling; no context between requests
