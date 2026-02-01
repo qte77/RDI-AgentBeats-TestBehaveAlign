@@ -9,6 +9,7 @@ This script transforms TDD spec.py files into BDD spec.feature files:
 import ast
 import json
 import logging
+import os
 import re
 from pathlib import Path
 from typing import Any
@@ -175,8 +176,6 @@ def generate_bdd_task(tdd_task_dir: Path, bdd_root: Path) -> None:
 
     # Create relative symlink
     # Calculate relative path from bdd_task_dir to tdd_impl_dir
-    import os
-
     rel_path = os.path.relpath(tdd_impl_dir, bdd_task_dir)
 
     if bdd_impl_link.exists():
