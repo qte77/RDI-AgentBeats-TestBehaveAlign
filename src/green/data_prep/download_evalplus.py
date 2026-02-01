@@ -20,7 +20,7 @@ def download_tasks(output_dir: Path, task_range: tuple[int, int]) -> None:
         task_range: Tuple of (start, end) task IDs (e.g., (0, 5) for tasks 0-4)
     """
     try:
-        from evalplus.data import get_human_eval_plus
+        from evalplus.data import get_human_eval_plus  # type: ignore[import-not-found]
     except ImportError as e:
         logger.error("Failed to import evalplus: %s", e)
         logger.error("Install with: pip install evalplus")
@@ -42,8 +42,8 @@ def download_tasks(output_dir: Path, task_range: tuple[int, int]) -> None:
             logger.warning("Task %s not found in dataset, skipping", humaneval_id)
             continue
 
-        task_data = dataset[humaneval_id]
-        _process_task(output_dir, task_id, task_data)
+        task_data: dict[str, Any] = dataset[humaneval_id]
+        _process_task(output_dir, task_id, task_data)  # pyright: ignore[reportUnknownArgumentType]
         downloaded_count += 1
         logger.info("Downloaded task %d/%d: %s", downloaded_count, end_id - start_id, humaneval_id)
 
