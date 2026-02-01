@@ -43,8 +43,8 @@
       "files": [
         "scripts/data_prep/generate_variants.py"
       ],
-      "passes": false,
-      "completed_at": null,
+      "passes": true,
+      "completed_at": "2026-02-01T05:52:00Z",
       "content_hash": "24e3d29cbd8073e1f8d9e473b9ef0e98305198100aa3cc47b1b3b3807fce3d10",
       "depends_on": [
         "STORY-001"
@@ -64,8 +64,8 @@
       "files": [
         "scripts/data_prep/generate_bdd.py"
       ],
-      "passes": false,
-      "completed_at": null,
+      "passes": true,
+      "completed_at": "2026-02-01T06:10:00Z",
       "content_hash": "8c9530f6e6fa14085601b43d1a5ada233e78f5e72921941fe2031adb38e03ffb",
       "depends_on": [
         "STORY-001"
