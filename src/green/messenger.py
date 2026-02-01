@@ -112,9 +112,7 @@ class PurpleAgentMessenger:
                     result = response.json()
                     tests = result["tests"]
 
-                    logger.info(
-                        f"Received response from Purple Agent ({len(tests)} characters)"
-                    )
+                    logger.info(f"Received response from Purple Agent ({len(tests)} characters)")
 
                     # Validate response syntax with ast.parse()
                     try:

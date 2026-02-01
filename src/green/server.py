@@ -36,6 +36,7 @@ class GreenAgentServer:
         self.port = port
         self.scenario_file = scenario_file
         self.executor = GreenAgentExecutor(scenario_file)
+        self._uvicorn_server: uvicorn.Server | None = None
 
         # Create AgentCard
         agent_card = AgentCard(
@@ -98,7 +99,7 @@ class GreenAgentServer:
     def _setup_signal_handlers(self) -> None:
         """Setup signal handlers for graceful shutdown."""
 
-        def handle_shutdown(signum: int, frame: object) -> None:
+        def handle_shutdown(signum: int, _frame: object) -> None:  # noqa: ARG001
             """Handle shutdown signals."""
             logger.info(f"Received signal {signum}, initiating graceful shutdown")
             self._shutdown_event.set()
@@ -117,14 +118,16 @@ class GreenAgentServer:
             port=self.port,
             log_level="info",
         )
-        server = uvicorn.Server(config)
+        self._uvicorn_server = uvicorn.Server(config)
 
         # Run server until shutdown signal
-        await server.serve()
+        await self._uvicorn_server.serve()
 
     async def shutdown(self) -> None:
         """Gracefully shutdown the server."""
         logger.info("Shutting down Green Agent server")
+        if self._uvicorn_server:
+            self._uvicorn_server.should_exit = True
         self._shutdown_event.set()
 
     async def stop(self) -> None:

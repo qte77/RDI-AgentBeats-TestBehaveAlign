@@ -409,7 +409,11 @@ class TestGracefulShutdown:
     async def test_server_shutdown_completes_cleanly(
         self, temp_scenario_file: Path, server_port: int, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Server shutdown should complete without errors."""
+        """Server shutdown should complete without errors.
+
+        Critical fix: shutdown() must set uvicorn_server.should_exit = True
+        to properly stop the uvicorn server, otherwise server.start() blocks forever.
+        """
         from green.server import create_server
 
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
