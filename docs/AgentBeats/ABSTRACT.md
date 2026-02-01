@@ -7,6 +7,7 @@ TestBehaveAlign evaluates AI agents on **test generation quality** through two t
 ## Problem Statement
 
 Current code generation benchmarks (HumanEval, MBPP) evaluate functional correctness but ignore test quality. Real-world software requires tests that:
+
 - Catch regressions
 - Document behavior
 - Guide refactoring
@@ -14,6 +15,7 @@ Current code generation benchmarks (HumanEval, MBPP) evaluate functional correct
 ## Our Approach
 
 **Green Agent (Evaluator)**: Runs generated tests against correct and buggy implementations, measuring:
+
 - **Fault Detection Rate**: Do tests pass on correct code and fail on buggy code?
 - **Mutation Score**: Do tests catch artificially injected bugs?
 
@@ -33,7 +35,7 @@ Current code generation benchmarks (HumanEval, MBPP) evaluate functional correct
 
 ## Scoring
 
-```
+```text
 MVP Score = (0.60 × Mutation Score) + (0.40 × Fault Detection Rate)
 ```
 
@@ -49,6 +51,7 @@ Both metrics are fully automated and deterministic.
 ## Target Audience
 
 Researchers and practitioners interested in:
+
 - Test generation capabilities of AI coding agents
 - Quality assurance automation
 - Agent-based software engineering
