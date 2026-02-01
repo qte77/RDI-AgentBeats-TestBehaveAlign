@@ -132,7 +132,11 @@ class TestAgentCardEndpoint:
 
     @pytest.mark.asyncio
     async def test_agent_card_has_required_fields(
-        self, temp_scenario_file: Path, server_port: int, base_url: str, monkeypatch: pytest.MonkeyPatch
+        self,
+        temp_scenario_file: Path,
+        server_port: int,
+        base_url: str,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Define AgentCard with skills and capabilities."""
         from green.server import create_server
@@ -170,7 +174,11 @@ class TestAgentCardEndpoint:
 
     @pytest.mark.asyncio
     async def test_agent_card_identifies_as_green_agent(
-        self, temp_scenario_file: Path, server_port: int, base_url: str, monkeypatch: pytest.MonkeyPatch
+        self,
+        temp_scenario_file: Path,
+        server_port: int,
+        base_url: str,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """AgentCard should identify as Green Agent with test evaluation capability."""
         from green.server import create_server
