@@ -1,6 +1,6 @@
 ---
 title: Product Requirements Document - Purple Agent
-version: 1.0
+version: 2.0
 ---
 
 ## Project Overview
@@ -19,22 +19,28 @@ The Purple Agent is a baseline test generator that creates pytest or pytest-bdd 
 
 #### Feature 1: A2A Discovery Endpoint
 
-**Description**: Implement A2A-compliant discovery endpoint for agent identification.
+**Description**: Serve the A2A agent-card endpoint so that Green Agent can discover capabilities.
 
 **Acceptance Criteria**:
-- [ ] Serve HTTP on port 9010
-- [ ] Implement `GET /.well-known/agent-card.json` endpoint
-  - Return JSON with: `{name, version, capabilities, tracks}`
-  - name: "testbehavealign-purple"
-  - version: "0.1.0"
-  - capabilities: ["test-generation"]
-  - tracks: ["tdd", "bdd"]
+- [ ] Serve on port 9010
+- [ ] GET /.well-known/agent-card.json returns metadata
+- [ ] Include name, version, capabilities in response
+- [ ] Include supported tracks (TDD, BDD)
 - [ ] Follow A2A protocol specification
-- [ ] Return 200 with valid JSON
+- [ ] GET /health returns health status
 
 **Technical Requirements**:
 - Use a2a-sdk AgentCard model
 - Configure via PurpleSettings
+- Response schema:
+  ```json
+  {
+    "name": "testbehavealign-purple",
+    "version": "0.1.0",
+    "capabilities": ["test-generation"],
+    "tracks": ["tdd", "bdd"]
+  }
+  ```
 
 **Files**:
 - `src/purple/server.py`
@@ -44,23 +50,20 @@ The Purple Agent is a baseline test generator that creates pytest or pytest-bdd 
 
 #### Feature 2: Test Generation Request Handler
 
-**Description**: Handle incoming test generation requests with validation.
+**Description**: Receive test generation requests via A2A to process specifications and generate tests.
 
 **Acceptance Criteria**:
-- [ ] Implement `POST /generate-tests` endpoint
-- [ ] Parse request JSON:
-  - `spec` (string, required): function/feature specification
-  - `track` (string, required): "tdd" or "bdd"
-- [ ] Validate inputs:
-  - spec is non-empty
-  - track is "tdd" or "bdd"
-  - Return 400 on validation failure with error message
+- [ ] POST /generate-tests endpoint
+- [ ] Parse request JSON: `{spec: str, track: "tdd"|"bdd"}`
+- [ ] Validate track is supported
+- [ ] Validate spec is non-empty
+- [ ] Return 400 on invalid input with error message
 - [ ] Return 500 on generation errors with error details
-- [ ] Set Content-Type: application/json in responses
 
 **Technical Requirements**:
 - Use Pydantic for request validation
 - Return structured error responses
+- Set Content-Type: application/json in responses
 
 **Files**:
 - `src/purple/agent.py`
@@ -71,21 +74,16 @@ The Purple Agent is a baseline test generator that creates pytest or pytest-bdd 
 
 #### Feature 3: TDD Test Generation (pytest)
 
-**Description**: Generate pytest test functions from Python function specifications.
+**Description**: Generate pytest tests from Python docstrings to evaluate TDD test generation quality.
 
 **Acceptance Criteria**:
 - [ ] Parse function signature from spec.py
-- [ ] Extract docstring examples (>>> style)
-- [ ] Generate pytest test functions:
-  - Function names: `test_<feature>_<scenario>`
-  - Use standard assertions: `assert condition`
-  - Import: `import pytest` and `from solution import <function_name>`
-- [ ] Cover docstring examples + edge cases:
-  - Empty inputs (if applicable)
-  - Boundary values
-  - Invalid types (if documented)
+- [ ] Extract docstring examples (>>> examples)
+- [ ] Generate pytest test functions
+- [ ] Cover edge cases mentioned in docstring
+- [ ] Follow pytest naming conventions (`test_<feature>_<scenario>`)
 - [ ] Return valid Python code (no syntax errors)
-- [ ] Code must be executable with `pytest`
+- [ ] Import: `import pytest` and `from solution import <function_name>`
 
 **Technical Requirements**:
 - Use LLM with structured prompts for TDD
@@ -98,23 +96,21 @@ The Purple Agent is a baseline test generator that creates pytest or pytest-bdd 
 
 #### Feature 4: BDD Test Generation (pytest-bdd)
 
-**Description**: Generate pytest-bdd step definitions from Gherkin feature files.
+**Description**: Generate pytest-bdd step definitions from Gherkin features to evaluate BDD test generation quality.
 
 **Acceptance Criteria**:
 - [ ] Parse Gherkin feature file
-- [ ] Extract Given/When/Then steps from scenarios
-- [ ] Generate pytest-bdd step definitions:
-  - `@given`, `@when`, `@then` decorators
-  - Use `pytest_bdd.scenarios('spec.feature')`
-  - Implement step logic based on scenario description
-  - Use parsers for parameterized steps: `@given(parsers.parse(...))`
+- [ ] Extract Given/When/Then steps
+- [ ] Generate pytest-bdd step definitions
+- [ ] Implement step logic based on scenario description
+- [ ] Follow pytest-bdd conventions
+- [ ] Return valid Python code
 - [ ] Import: `from pytest_bdd import scenarios, given, when, then, parsers`
-- [ ] Return valid Python code executable with `pytest-bdd`
-- [ ] Steps must match feature file exactly
+- [ ] Include `scenarios('spec.feature')` call
 
 **Technical Requirements**:
 - Use LLM with structured prompts for BDD
-- Include scenarios() call in generated code
+- Use parsers for parameterized steps: `@given(parsers.parse(...))`
 
 **Files**:
 - `src/purple/agent.py`
@@ -123,26 +119,22 @@ The Purple Agent is a baseline test generator that creates pytest or pytest-bdd 
 
 #### Feature 5: LLM Integration
 
-**Description**: Integrate with OpenAI API for test code generation.
+**Description**: Use OpenAI API to generate test code leveraging LLM capabilities.
 
 **Acceptance Criteria**:
-- [ ] Load `OPENAI_API_KEY` from environment (required)
+- [ ] Load OPENAI_API_KEY from environment (required)
+- [ ] Construct prompt based on track (TDD or BDD)
 - [ ] Call OpenAI API (gpt-4 or gpt-3.5-turbo)
-- [ ] Construct prompts based on track:
-  - TDD: Request pytest test generation
-  - BDD: Request pytest-bdd step definitions
 - [ ] Parse code from LLM response
-- [ ] Handle API errors:
-  - Rate limits: implement exponential backoff
-  - Timeouts: retry up to 3 times
-  - Invalid API key: fail with clear error
-- [ ] Log token usage for each request
-- [ ] Track generation time (seconds)
+- [ ] Handle API errors (rate limits, timeouts)
+- [ ] Retry failed requests (up to 3 times)
+- [ ] Log token usage
 
 **Technical Requirements**:
 - Use openai Python SDK
 - Implement retry with tenacity or manual backoff
 - Extract code blocks from markdown responses
+- Implement exponential backoff (1s, 2s, 4s)
 
 **Files**:
 - `src/purple/agent.py`
@@ -153,23 +145,22 @@ The Purple Agent is a baseline test generator that creates pytest or pytest-bdd 
 
 #### Feature 6: Code Validation
 
-**Description**: Validate generated code syntax before returning to caller.
+**Description**: Validate generated test code before returning to ensure syntactically correct output.
 
 **Acceptance Criteria**:
-- [ ] Validate generated code syntax using `ast.parse()`
-- [ ] Return error if syntax invalid
-- [ ] Check required imports:
-  - TDD: `import pytest`
-  - BDD: `from pytest_bdd`
-- [ ] Verify test functions/steps exist:
-  - TDD: at least one function starting with `def test_`
-  - BDD: at least one `@given`, `@when`, or `@then` decorator
+- [ ] Parse generated code with ast.parse()
+- [ ] Check for syntax errors
+- [ ] Verify required imports (pytest, pytest-bdd)
+- [ ] Verify test function definitions exist
+- [ ] Return error if validation fails
 - [ ] Log validation failures
 - [ ] Do NOT execute code (safety)
 
 **Technical Requirements**:
 - Use ast module for syntax validation
 - Use regex or ast for import/function checks
+- TDD: at least one `def test_` function
+- BDD: at least one `@given`, `@when`, or `@then` decorator
 
 **Files**:
 - `src/purple/agent.py`
@@ -178,15 +169,13 @@ The Purple Agent is a baseline test generator that creates pytest or pytest-bdd 
 
 #### Feature 7: Track Switching
 
-**Description**: Route requests to appropriate generator based on track parameter.
+**Description**: Support both TDD and BDD modes to generate appropriate tests per track.
 
 **Acceptance Criteria**:
-- [ ] Read `track` from request payload
-- [ ] Branch logic:
-  - `track == "tdd"`: generate pytest (Feature 3)
-  - `track == "bdd"`: generate pytest-bdd (Feature 4)
-  - Otherwise: return 400 "unsupported track"
+- [ ] Read track from request payload
+- [ ] Branch logic: TDD → pytest, BDD → pytest-bdd
 - [ ] Use different prompts per track
+- [ ] Return error if track unsupported
 - [ ] Include track in response metadata
 - [ ] Use simple if/else (KISS principle)
 
@@ -201,29 +190,29 @@ The Purple Agent is a baseline test generator that creates pytest or pytest-bdd 
 
 #### Feature 8: Response Format
 
-**Description**: Return structured JSON response with generated tests and metadata.
+**Description**: Return generated test code in A2A format so Green Agent can execute tests.
 
 **Acceptance Criteria**:
-- [ ] Return JSON response:
-  ```json
-  {
-    "tests": "<generated_test_code>",
-    "metadata": {
-      "generation_time": <seconds>,
-      "token_count": <int>,
-      "track": "tdd|bdd"
-    }
-  }
-  ```
-- [ ] tests: Multi-line string with newlines preserved
-- [ ] metadata.generation_time: Elapsed time in seconds
-- [ ] metadata.token_count: Tokens used in LLM call
+- [ ] Return JSON response: `{tests: str}`
+- [ ] Include metadata: generation_time, token_count, track
 - [ ] Set Content-Type: application/json
 - [ ] Return 200 on success
+- [ ] Return 500 on generation failure
+- [ ] Preserve newlines in test code string
 
 **Technical Requirements**:
 - Use Pydantic model for response serialization
-- Preserve newlines in test code string
+- Response schema:
+  ```json
+  {
+    "tests": "import pytest\n\ndef test_example():\n    assert True",
+    "metadata": {
+      "generation_time": 2.5,
+      "token_count": 150,
+      "track": "tdd"
+    }
+  }
+  ```
 
 **Files**:
 - `src/purple/models.py`
@@ -233,25 +222,15 @@ The Purple Agent is a baseline test generator that creates pytest or pytest-bdd 
 
 #### Feature 9: Logging
 
-**Description**: Implement structured logging for debugging and monitoring.
+**Description**: Log all incoming requests and responses for debugging test generation issues.
 
 **Acceptance Criteria**:
-- [ ] Log all incoming requests with:
-  - Timestamp (ISO 8601)
-  - Request ID (correlation for debugging)
-  - Track (tdd or bdd)
-  - Spec length (characters)
-- [ ] Log responses with:
-  - Success/failure status
-  - Generated code length
-  - Generation time
-  - Token count
-- [ ] Log errors with:
-  - Stack trace
-  - Error message
-  - Request context
-- [ ] Use structured JSON logging (not unstructured strings)
-- [ ] Log level configurable via `LOG_LEVEL` env var
+- [ ] Log request: timestamp, spec_length, track
+- [ ] Log response: success, test_length, generation_time
+- [ ] Log errors: stack trace, error message
+- [ ] Use structured logging (JSON)
+- [ ] Include correlation ID per request
+- [ ] Log level configurable via LOG_LEVEL env var
 
 **Technical Requirements**:
 - Use Python logging with JSON formatter
@@ -265,18 +244,16 @@ The Purple Agent is a baseline test generator that creates pytest or pytest-bdd 
 
 #### Feature 10: Configuration Management
 
-**Description**: Manage configuration via environment variables with validation.
+**Description**: Load configuration from environment to adapt to different deployment environments.
 
 **Acceptance Criteria**:
-- [ ] Load from environment variables:
-  - `OPENAI_API_KEY` (required, string)
-  - `PORT` (optional, default: 9010, int)
-  - `LOG_LEVEL` (optional, default: "INFO", string)
-  - `LLM_MODEL` (optional, default: "gpt-4", string)
-  - `TIMEOUT` (optional, default: 30, int, seconds)
-- [ ] Fail fast on startup if `OPENAI_API_KEY` missing
-- [ ] Validate config types on startup
-- [ ] Use Pydantic for configuration
+- [ ] Load OPENAI_API_KEY (required)
+- [ ] Load PORT (default: 9010)
+- [ ] Load LOG_LEVEL (default: INFO)
+- [ ] Load LLM_MODEL (default: gpt-4)
+- [ ] Load TIMEOUT (default: 30s)
+- [ ] Fail fast if required config missing
+- [ ] Validate config on startup
 - [ ] Log configuration at startup (excluding secrets)
 
 **Technical Requirements**:
@@ -353,54 +330,6 @@ src/purple/
 | `models.py` | Domain Pydantic models | `GenerateRequest`, `TestResponse`, `GenerationMetadata` |
 | `settings.py` | Environment configuration | `PurpleSettings(BaseSettings)` with env prefix |
 
-### Agent Class Pattern
-
-```python
-class Agent:
-    required_config_keys: list[str] = ["spec", "track"]
-
-    def __init__(self):
-        self.settings = PurpleSettings()
-        self.llm_client = LLMClient(self.settings.llm)
-
-    def validate_request(self, request: GenerateRequest) -> tuple[bool, str]: ...
-    async def run(self, message: Message, updater: TaskUpdater) -> None: ...
-    async def generate_tests(self, spec: str, track: str) -> str: ...
-```
-
-### Executor Pattern (Standard A2A)
-
-```python
-class Executor(AgentExecutor):
-    def __init__(self):
-        self.agents: dict[str, Agent] = {}
-
-    async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
-        # Validate message, get/create task, run agent, handle errors
-        ...
-
-    async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:
-        raise ServerError(error=UnsupportedOperationError())
-```
-
-### Server Pattern
-
-```python
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--host", default="0.0.0.0")
-    parser.add_argument("--port", type=int, default=9010)
-    parser.add_argument("--card-url", type=str)
-    args = parser.parse_args()
-
-    skill = AgentSkill(id="generate_tests", name="Test Generator", ...)
-    agent_card = AgentCard(name="Purple Agent", version="1.0.0", skills=[skill], ...)
-
-    handler = DefaultRequestHandler(agent_executor=Executor(), task_store=InMemoryTaskStore())
-    server = A2AStarletteApplication(agent_card=agent_card, http_handler=handler)
-    uvicorn.run(server.build(), host=args.host, port=args.port)
-```
-
 ---
 
 ## Dependencies
@@ -428,6 +357,10 @@ def main():
 - Task data generation
 - UI or visualization
 - Alternative LLM providers (MVP uses OpenAI only)
+- Test optimization (no iterative refinement)
+- Caching generated tests (each request generates fresh)
+- Multi-language support (Python only)
+- Custom prompt templates (fixed prompts for MVP)
 
 ---
 
