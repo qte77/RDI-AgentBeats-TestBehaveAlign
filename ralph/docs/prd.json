@@ -151,8 +151,8 @@
         "src/green/server.py",
         "src/green/executor.py"
       ],
-      "passes": false,
-      "completed_at": null,
+      "passes": true,
+      "completed_at": "2026-02-01T12:00:00Z",
       "content_hash": "900924c8ad972eaed2c9e3a3ca7139c3ac6515970171644515bc850683c100a9",
       "depends_on": []
     },
