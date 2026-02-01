@@ -1,0 +1,341 @@
+{
+  "project": "Green Agent",
+  "description": "Automated test quality evaluator that measures how well AI coding agents generate tests. Orchestrates evaluation workflows, runs tests against correct and buggy implementations, calculates objective quality metrics, and reports results in AgentBeats format.",
+  "scope": "Phase 1 (STORY-001 to STORY-013): Data preparation scripts, A2A server/client, test execution, fault detection, mutation testing, composite scoring, results generation.",
+  "source": "docs/PRD.md",
+  "generated": "2026-02-01 01:39:05",
+  "stories": [
+    {
+      "id": "STORY-001",
+      "title": "Download EvalPlus HumanEval tasks to data/tasks/tdd/",
+      "description": "Download benchmark tasks from EvalPlus HumanEval dataset for evaluation. - Download EvalPlus HumanEval tasks to data/tasks/tdd/",
+      "acceptance": [
+        "Download HumanEval tasks 0-4 from EvalPlus benchmark",
+        "Extract function specs (signature + docstring) to `spec.py`",
+        "Extract canonical solutions to `implementation/correct.py`",
+        "Generate `metadata.json` with task_id, function_name, track, source",
+        "Structure output as `data/tasks/tdd/python/task_{001..005}/`",
+        "Handle evalplus import errors gracefully",
+        "Log download progress and success",
+        "Use `evalplus.data.get_human_eval_plus()` API",
+        "Map HumanEval IDs to task names (e.g., 0 \u2192 task_001_has_close_elements)",
+        "Create directory structure with pathlib"
+      ],
+      "files": [
+        "scripts/data_prep/download_evalplus.py"
+      ],
+      "passes": false,
+      "completed_at": null,
+      "content_hash": "62557485eaaaee4cd94e21f8e309fbf632ac9b275e0d0b06401050a2a8a2ddb6",
+      "depends_on": []
+    },
+    {
+      "id": "STORY-002",
+      "title": "Generate buggy.py and alternative.py",
+      "description": "Generate buggy and alternative implementations from correct solutions for fault detection testing. - Generate buggy.py and alternative.py",
+      "acceptance": [
+        "Read `correct.py` from each task directory",
+        "Generate `buggy.py` with injected known defects:",
+        "Define BUG_PATTERNS dict mapping task_id to injection rules",
+        "Use string replacement for bug injection",
+        "Validate buggy code differs from correct code"
+      ],
+      "files": [
+        "scripts/data_prep/generate_variants.py"
+      ],
+      "passes": false,
+      "completed_at": null,
+      "content_hash": "24e3d29cbd8073e1f8d9e473b9ef0e98305198100aa3cc47b1b3b3807fce3d10",
+      "depends_on": [
+        "STORY-001"
+      ]
+    },
+    {
+      "id": "STORY-003",
+      "title": "Generate Gherkin spec.feature files",
+      "description": "Generate BDD Gherkin feature files from TDD docstring examples. - Generate Gherkin spec.feature files",
+      "acceptance": [
+        "Parse TDD `spec.py` docstring examples (>>> format)",
+        "Generate Gherkin `spec.feature` files with:",
+        "Use regex to parse >>> docstring examples",
+        "Generate relative symlinks for implementation reuse",
+        "Extract function name from spec or metadata"
+      ],
+      "files": [
+        "scripts/data_prep/generate_bdd.py"
+      ],
+      "passes": false,
+      "completed_at": null,
+      "content_hash": "8c9530f6e6fa14085601b43d1a5ada233e78f5e72921941fe2031adb38e03ffb",
+      "depends_on": [
+        "STORY-001"
+      ]
+    },
+    {
+      "id": "STORY-004",
+      "title": "Implement track configuration loading",
+      "description": "Support both TDD and BDD evaluation modes to evaluate different testing paradigms. - Implement track configuration loading",
+      "acceptance": [
+        "Read track from scenario.toml config",
+        "Load TDD tasks from data/tasks/tdd/",
+        "Load BDD tasks from data/tasks/bdd/",
+        "Use pytest for TDD, pytest-bdd for BDD",
+        "Send track to Purple Agent in request",
+        "Include track in results output",
+        "Validate track is supported (\"tdd\" or \"bdd\")",
+        "Load configuration from `scenario.toml` using toml parser",
+        "Load OpenAI env vars: OPENAI_API_KEY, OPENAI_BASE_URL",
+        "Support OpenAI-compatible endpoints (Azure, local models, etc.)",
+        "Single executor with mode switch (KISS principle, no inheritance)",
+        "Simple if/else for track handling",
+        "Fail fast if required config missing"
+      ],
+      "files": [
+        "src/green/settings.py",
+        "src/green/agent.py"
+      ],
+      "passes": false,
+      "completed_at": null,
+      "content_hash": "cbce2968eabd1f598eb0e0ea3827d1fc87f281cdc227f4736b0ae29c8e7e4f49",
+      "depends_on": [
+        "STORY-002",
+        "STORY-003"
+      ]
+    },
+    {
+      "id": "STORY-005",
+      "title": "Implement task directory loading and spec parsing",
+      "description": "Load task specifications from the data directory to provide test generation prompts to the Purple Agent. - Implement task directory loading and spec parsing",
+      "acceptance": [
+        "Read task directory structure (TDD or BDD track)",
+        "Parse spec.py (TDD) containing function signature and docstring",
+        "Parse spec.feature (BDD) containing Gherkin scenarios",
+        "Load correct.py, buggy.py from implementation/ directory",
+        "Validate task metadata (task_id, track, function_name)",
+        "Handle missing files gracefully with clear errors",
+        "Track determined by scenario.toml config",
+        "Path: `data/tasks/{track}/python/{task_id}/`",
+        "Use pathlib for cross-platform path handling",
+        "Parse Python AST for spec.py extraction",
+        "Use gherkin-official or pytest-bdd parser for .feature files",
+        "Use Pydantic models for validation"
+      ],
+      "files": [
+        "src/green/agent.py",
+        "src/green/models.py"
+      ],
+      "passes": false,
+      "completed_at": null,
+      "content_hash": "141ef44fa8bc19795faeeca185562ea9b409d356b40b1e78867e677b0e2f9afa",
+      "depends_on": [
+        "STORY-004"
+      ]
+    },
+    {
+      "id": "STORY-006",
+      "title": "Implement A2A server with AgentCard and endpoints",
+      "description": "Serve A2A HTTP endpoints so that AgentBeats client can orchestrate evaluation. - Implement A2A server with AgentCard and endpoints",
+      "acceptance": [
+        "Serve on port 9009",
+        "GET /.well-known/agent-card.json \u2192 agent metadata",
+        "POST /evaluate \u2192 start evaluation, return results",
+        "Health check endpoint: GET /health",
+        "Graceful shutdown on SIGTERM",
+        "Log all incoming requests with request IDs",
+        "Use a2a-sdk A2AStarletteApplication",
+        "Define AgentCard with skills and capabilities",
+        "Implement DefaultRequestHandler with Executor",
+        "Use uvicorn ASGI server"
+      ],
+      "files": [
+        "src/green/server.py",
+        "src/green/executor.py"
+      ],
+      "passes": false,
+      "completed_at": null,
+      "content_hash": "900924c8ad972eaed2c9e3a3ca7139c3ac6515970171644515bc850683c100a9",
+      "depends_on": []
+    },
+    {
+      "id": "STORY-007",
+      "title": "Implement Purple Agent communication",
+      "description": "Send specifications to Purple Agent using A2A protocol to receive generated test code. - Implement Purple Agent communication",
+      "acceptance": [
+        "Discover Purple Agent via /.well-known/agent-card.json",
+        "Send POST request to /generate-tests with spec and track",
+        "Receive test code in response: `{tests: str}`",
+        "Handle timeouts (30 seconds per request)",
+        "Implement retry logic (up to 3 attempts on failure)",
+        "Log all A2A interactions for debugging",
+        "Use a2a-sdk for communication",
+        "Purple Agent on port 9010",
+        "Request: `{spec: str, track: \"tdd\"|\"bdd\"}`",
+        "Implement exponential backoff for retries",
+        "Validate response syntax with ast.parse()"
+      ],
+      "files": [
+        "src/green/messenger.py",
+        "src/green/agent.py",
+        "src/common/messenger.py"
+      ],
+      "passes": false,
+      "completed_at": null,
+      "content_hash": "95dc889e589b7f4c338a96476f84c67faefa737cfb0bf2c3ef2fa8ae86556ef0",
+      "depends_on": [
+        "STORY-006"
+      ]
+    },
+    {
+      "id": "STORY-008",
+      "title": "Implement test execution against correct.py",
+      "description": "Run generated tests against correct.py to verify tests pass on working code. - Implement test execution against correct.py",
+      "acceptance": [
+        "Create isolated test environment (temp directory per task)",
+        "Write test code to file",
+        "Copy correct.py to test environment",
+        "Execute pytest (TDD) or pytest-bdd (BDD)",
+        "Capture exit code, stdout, stderr, execution time",
+        "Return binary result: PASS (0) or FAIL (non-zero)",
+        "Implement 30-second timeout per test run",
+        "Clean up test environment (temp files)",
+        "Use subprocess with timeout for isolation",
+        "Create temp directories with tempfile module",
+        "Capture output streams for debugging",
+        "No network access in test environment"
+      ],
+      "files": [
+        "src/green/agent.py",
+        "src/green/models.py"
+      ],
+      "passes": false,
+      "completed_at": null,
+      "content_hash": "6a6845a81110fbbc4e247f6bf8acb2f226d7f610ca0565acfece1559631f2a2c",
+      "depends_on": [
+        "STORY-005",
+        "STORY-007"
+      ]
+    },
+    {
+      "id": "STORY-009",
+      "title": "Implement test execution against buggy.py",
+      "description": "Run generated tests against buggy.py to verify tests detect injected faults. - Implement test execution against buggy.py",
+      "acceptance": [
+        "Same isolation as Feature 8",
+        "Run tests against buggy.py instead of correct.py",
+        "Expect tests to FAIL (detect injected bugs)",
+        "Return binary result: detected bug (FAIL) or missed bug (PASS)",
+        "Log which specific tests failed and why",
+        "Validate test failure is due to buggy implementation (not infrastructure)",
+        "Reuse test execution infrastructure from Feature 8",
+        "Distinguish assertion failures from import/syntax errors",
+        "Buggy implementations have known defects"
+      ],
+      "files": [
+        "src/green/agent.py",
+        "src/green/models.py"
+      ],
+      "passes": false,
+      "completed_at": null,
+      "content_hash": "a127bcb80eda244f99094be987d21f180f047a8a4fa0e7625e30b65246703503",
+      "depends_on": [
+        "STORY-008"
+      ]
+    },
+    {
+      "id": "STORY-010",
+      "title": "Implement fault detection score calculation",
+      "description": "Calculate fault detection rate for each task to measure test effectiveness. - Implement fault detection score calculation",
+      "acceptance": [
+        "Calculate per-task: `fault_detection = 1.0 if (passed_correct AND failed_buggy) else 0.0`",
+        "Handle edge cases:",
+        "Use Pydantic models for score validation",
+        "Aggregate with simple averaging"
+      ],
+      "files": [
+        "src/green/agent.py",
+        "src/green/models.py"
+      ],
+      "passes": false,
+      "completed_at": null,
+      "content_hash": "365feb444af76b20eb67b588af9437b4b393be5e02278c93eac96f03e9b9e272",
+      "depends_on": [
+        "STORY-008",
+        "STORY-009"
+      ]
+    },
+    {
+      "id": "STORY-011",
+      "title": "Implement mutation testing integration",
+      "description": "Run mutmut mutation testing on generated tests to measure test thoroughness. - Implement mutation testing integration",
+      "acceptance": [
+        "Configure mutmut to mutate correct.py",
+        "Generate mutations using standard operators (arithmetic, boolean, comparison)",
+        "Run generated tests against each mutant",
+        "Count killed vs survived mutants",
+        "Calculate mutation score: `killed / total`",
+        "Timeout per mutant: 10 seconds",
+        "Cache mutations for reproducibility",
+        "Handle mutmut errors gracefully (skip if unavailable)",
+        "Use mutmut Python API or subprocess",
+        "Implement timeout per mutant execution",
+        "Handle mutmut unavailability gracefully"
+      ],
+      "files": [
+        "src/green/agent.py",
+        "src/green/models.py"
+      ],
+      "passes": false,
+      "completed_at": null,
+      "content_hash": "4ae651dfc703527ab6142a438037fdf70a5a5a075e1c175f17a1a029cc11652d",
+      "depends_on": [
+        "STORY-008"
+      ]
+    },
+    {
+      "id": "STORY-012",
+      "title": "Implement composite score calculation",
+      "description": "Calculate weighted composite score to rank test quality. - Implement composite score calculation",
+      "acceptance": [
+        "MVP formula: `score = (0.60 \u00d7 mutation_score) + (0.40 \u00d7 fault_detection_rate)`",
+        "Validate component scores in [0.0, 1.0]",
+        "Round final score to 2 decimal places",
+        "Include all component scores in output",
+        "Handle missing metrics (default to 0.0)",
+        "Configurable weights (future enhancement)",
+        "Pydantic validation for score bounds"
+      ],
+      "files": [
+        "src/green/agent.py",
+        "src/green/models.py"
+      ],
+      "passes": false,
+      "completed_at": null,
+      "content_hash": "ac546c20d9b9839f95581530dab90810fc4db75a9c9dbbc5b083d2a1a165469d",
+      "depends_on": [
+        "STORY-010",
+        "STORY-011"
+      ]
+    },
+    {
+      "id": "STORY-013",
+      "title": "Implement AgentBeats results.json generation",
+      "description": "Output results in AgentBeats format so results integrate with the leaderboard. - Implement AgentBeats results.json generation",
+      "acceptance": [
+        "Output to `output/results.json`",
+        "Follow AgentBeats schema:",
+        "Use Pydantic model with model_dump_json()",
+        "Validate against AgentBeats schema"
+      ],
+      "files": [
+        "src/green/models.py",
+        "src/green/agent.py"
+      ],
+      "passes": false,
+      "completed_at": null,
+      "content_hash": "786f2c24fe77b1cc2eaf168354180f6ee0bcae257c363333a5fe9fd3086b4253",
+      "depends_on": [
+        "STORY-012"
+      ]
+    }
+  ]
+}

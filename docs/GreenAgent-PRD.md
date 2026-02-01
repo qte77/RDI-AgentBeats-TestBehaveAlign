@@ -389,6 +389,8 @@ The Green Agent is an automated test quality evaluator that measures how well AI
 ### Configuration
 - [ ] Load config from `scenario.toml`
 - [ ] Load env vars: `LOG_LEVEL`, `PORT`, `TIMEOUT`
+- [ ] Load OpenAI env vars: `OPENAI_API_KEY`, `OPENAI_BASE_URL`
+- [ ] Support OpenAI-compatible endpoints (Azure, local models, etc.)
 - [ ] Fail fast if required config missing
 - [ ] Validate config on startup
 
@@ -430,7 +432,7 @@ From `pyproject.toml` main dependencies:
 - `a2a-sdk[http-server]>=0.3.0` - Agent-to-agent communication
 - `uvicorn>=0.30.0` - ASGI server
 - `httpx>=0.27.0` - HTTP client
-- `openai>=1.0.0` - LLM client (shared with Purple)
+- `openai>=1.0.0` - LLM client (OpenAI-compatible endpoint support via OPENAI_BASE_URL)
 - `pydantic-settings>=2.12.0` - Environment configuration (includes pydantic)
 - `pytest>=8.0.0` - Test execution (TDD) - Green runtime requirement
 - `pytest-bdd>=7.0.0` - BDD test support
