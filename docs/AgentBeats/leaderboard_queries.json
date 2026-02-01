@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Overall Performance",
+    "query": "SELECT json_extract_string(to_json(participants), '$.' || list_extract(json_keys(to_json(participants)), 1)) AS id, json_extract_string(to_json(res), '$.task_rewards.track') AS track, ROUND(COALESCE(json_extract(to_json(res), '$.score')::DOUBLE, 0), 2) AS score, ROUND(COALESCE(json_extract(to_json(res), '$.task_rewards.mutation_score')::DOUBLE, 0) * 100, 1) AS mutation_pct, ROUND(COALESCE(json_extract(to_json(res), '$.task_rewards.fault_detection_rate')::DOUBLE, 0) * 100, 1) AS fault_detection_pct, ROUND(COALESCE(json_extract(to_json(res), '$.pass_rate')::DOUBLE, 0), 1) AS pass_rate, COALESCE(json_extract(to_json(res), '$.task_rewards.task_count')::INTEGER, 0) AS task_count FROM results CROSS JOIN UNNEST(results) AS r(res) ORDER BY score DESC, mutation_pct DESC"
+  },
+  {
+    "name": "Highest Mutation Score",
+    "query": "SELECT json_extract_string(to_json(participants), '$.' || list_extract(json_keys(to_json(participants)), 1)) AS id, json_extract_string(to_json(res), '$.task_rewards.track') AS track, ROUND(COALESCE(json_extract(to_json(res), '$.task_rewards.mutation_score')::DOUBLE, 0) * 100, 1) AS mutation_pct, ROUND(COALESCE(json_extract(to_json(res), '$.score')::DOUBLE, 0), 2) AS score, ROUND(COALESCE(json_extract(to_json(res), '$.task_rewards.fault_detection_rate')::DOUBLE, 0) * 100, 1) AS fault_detection_pct, COALESCE(json_extract(to_json(res), '$.task_rewards.task_count')::INTEGER, 0) AS task_count FROM results CROSS JOIN UNNEST(results) AS r(res) ORDER BY mutation_pct DESC, score DESC"
+  },
+  {
+    "name": "Best Fault Detection",
+    "query": "SELECT json_extract_string(to_json(participants), '$.' || list_extract(json_keys(to_json(participants)), 1)) AS id, json_extract_string(to_json(res), '$.task_rewards.track') AS track, ROUND(COALESCE(json_extract(to_json(res), '$.task_rewards.fault_detection_rate')::DOUBLE, 0) * 100, 1) AS fault_detection_pct, ROUND(COALESCE(json_extract(to_json(res), '$.score')::DOUBLE, 0), 2) AS score, ROUND(COALESCE(json_extract(to_json(res), '$.task_rewards.mutation_score')::DOUBLE, 0) * 100, 1) AS mutation_pct, COALESCE(json_extract(to_json(res), '$.task_rewards.task_count')::INTEGER, 0) AS task_count FROM results CROSS JOIN UNNEST(results) AS r(res) ORDER BY fault_detection_pct DESC, score DESC"
+  },
+  {
+    "name": "TDD Track",
+    "query": "SELECT json_extract_string(to_json(participants), '$.' || list_extract(json_keys(to_json(participants)), 1)) AS id, ROUND(COALESCE(json_extract(to_json(res), '$.score')::DOUBLE, 0), 2) AS score, ROUND(COALESCE(json_extract(to_json(res), '$.task_rewards.mutation_score')::DOUBLE, 0) * 100, 1) AS mutation_pct, ROUND(COALESCE(json_extract(to_json(res), '$.task_rewards.fault_detection_rate')::DOUBLE, 0) * 100, 1) AS fault_detection_pct, ROUND(COALESCE(json_extract(to_json(res), '$.pass_rate')::DOUBLE, 0), 1) AS pass_rate, COALESCE(json_extract(to_json(res), '$.task_rewards.task_count')::INTEGER, 0) AS task_count FROM results CROSS JOIN UNNEST(results) AS r(res) WHERE json_extract_string(to_json(res), '$.task_rewards.track') = 'tdd' ORDER BY score DESC, mutation_pct DESC"
+  },
+  {
+    "name": "BDD Track",
+    "query": "SELECT json_extract_string(to_json(participants), '$.' || list_extract(json_keys(to_json(participants)), 1)) AS id, ROUND(COALESCE(json_extract(to_json(res), '$.score')::DOUBLE, 0), 2) AS score, ROUND(COALESCE(json_extract(to_json(res), '$.task_rewards.mutation_score')::DOUBLE, 0) * 100, 1) AS mutation_pct, ROUND(COALESCE(json_extract(to_json(res), '$.task_rewards.fault_detection_rate')::DOUBLE, 0) * 100, 1) AS fault_detection_pct, ROUND(COALESCE(json_extract(to_json(res), '$.pass_rate')::DOUBLE, 0), 1) AS pass_rate, COALESCE(json_extract(to_json(res), '$.task_rewards.task_count')::INTEGER, 0) AS task_count FROM results CROSS JOIN UNNEST(results) AS r(res) WHERE json_extract_string(to_json(res), '$.task_rewards.track') = 'bdd' ORDER BY score DESC, mutation_pct DESC"
+  },
+  {
+    "name": "Highest Pass Rate",
+    "query": "SELECT json_extract_string(to_json(participants), '$.' || list_extract(json_keys(to_json(participants)), 1)) AS id, json_extract_string(to_json(res), '$.task_rewards.track') AS track, ROUND(COALESCE(json_extract(to_json(res), '$.pass_rate')::DOUBLE, 0), 1) AS pass_rate, ROUND(COALESCE(json_extract(to_json(res), '$.score')::DOUBLE, 0), 2) AS score, ROUND(COALESCE(json_extract(to_json(res), '$.task_rewards.mutation_score')::DOUBLE, 0) * 100, 1) AS mutation_pct, COALESCE(json_extract(to_json(res), '$.task_rewards.task_count')::INTEGER, 0) AS task_count FROM results CROSS JOIN UNNEST(results) AS r(res) ORDER BY pass_rate DESC, score DESC"
+  }
+]
