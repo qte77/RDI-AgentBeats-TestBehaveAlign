@@ -18,7 +18,7 @@
         "Handle evalplus import errors gracefully",
         "Log download progress and success",
         "Use `evalplus.data.get_human_eval_plus()` API",
-        "Map HumanEval IDs to task names (e.g., 0 \u2192 task_001_has_close_elements)",
+        "Map HumanEval IDs to task names (e.g., 0 → task_001_has_close_elements)",
         "Create directory structure with pathlib"
       ],
       "files": [
@@ -94,8 +94,8 @@
         "src/green/settings.py",
         "src/green/agent.py"
       ],
-      "passes": false,
-      "completed_at": null,
+      "passes": true,
+      "completed_at": "2026-02-01T06:49:02Z",
       "content_hash": "cbce2968eabd1f598eb0e0ea3827d1fc87f281cdc227f4736b0ae29c8e7e4f49",
       "depends_on": [
         "STORY-002",
@@ -137,8 +137,8 @@
       "description": "Serve A2A HTTP endpoints so that AgentBeats client can orchestrate evaluation. - Implement A2A server with AgentCard and endpoints",
       "acceptance": [
         "Serve on port 9009",
-        "GET /.well-known/agent-card.json \u2192 agent metadata",
-        "POST /evaluate \u2192 start evaluation, return results",
+        "GET /.well-known/agent-card.json → agent metadata",
+        "POST /evaluate → start evaluation, return results",
         "Health check endpoint: GET /health",
         "Graceful shutdown on SIGTERM",
         "Log all incoming requests with request IDs",
@@ -296,7 +296,7 @@
       "title": "Implement composite score calculation",
       "description": "Calculate weighted composite score to rank test quality. - Implement composite score calculation",
       "acceptance": [
-        "MVP formula: `score = (0.60 \u00d7 mutation_score) + (0.40 \u00d7 fault_detection_rate)`",
+        "MVP formula: `score = (0.60 × mutation_score) + (0.40 × fault_detection_rate)`",
         "Validate component scores in [0.0, 1.0]",
         "Round final score to 2 decimal places",
         "Include all component scores in output",
