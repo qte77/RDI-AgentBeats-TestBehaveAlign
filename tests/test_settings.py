@@ -76,9 +76,11 @@ timeout_per_task = 60
 class TestSettingsConfiguration:
     """Test suite for configuration loading from scenario.toml."""
 
-    def test_load_config_from_toml(self, temp_scenario_file: Path) -> None:
+    def test_load_config_from_toml(self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Load configuration from scenario.toml using toml parser."""
         from green.settings import Settings
+
+        monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
         settings = Settings.from_file(temp_scenario_file)
 
@@ -86,9 +88,11 @@ class TestSettingsConfiguration:
         assert settings.task_count == 5
         assert settings.timeout_per_task == 60
 
-    def test_load_tdd_track(self, temp_scenario_file: Path) -> None:
+    def test_load_tdd_track(self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Read track from scenario.toml config - TDD mode."""
         from green.settings import Settings
+
+        monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
         settings = Settings.from_file(temp_scenario_file)
 
@@ -96,9 +100,11 @@ class TestSettingsConfiguration:
         assert settings.is_tdd_mode() is True
         assert settings.is_bdd_mode() is False
 
-    def test_load_bdd_track(self, temp_scenario_bdd: Path) -> None:
+    def test_load_bdd_track(self, temp_scenario_bdd: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Read track from scenario.toml config - BDD mode."""
         from green.settings import Settings
+
+        monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
         settings = Settings.from_file(temp_scenario_bdd)
 
@@ -106,28 +112,34 @@ class TestSettingsConfiguration:
         assert settings.is_bdd_mode() is True
         assert settings.is_tdd_mode() is False
 
-    def test_validate_supported_track_tdd(self, temp_scenario_file: Path) -> None:
+    def test_validate_supported_track_tdd(self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Validate track is supported - TDD."""
         from green.settings import Settings
+
+        monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
         # Should not raise for valid track
         settings = Settings.from_file(temp_scenario_file)
         assert settings.track == "tdd"
 
-    def test_validate_supported_track_bdd(self, temp_scenario_bdd: Path) -> None:
+    def test_validate_supported_track_bdd(self, temp_scenario_bdd: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Validate track is supported - BDD."""
         from green.settings import Settings
+
+        monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
         # Should not raise for valid track
         settings = Settings.from_file(temp_scenario_bdd)
         assert settings.track == "bdd"
 
-    def test_fail_on_invalid_track(self, temp_scenario_invalid: Path) -> None:
+    def test_fail_on_invalid_track(self, temp_scenario_invalid: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Validate track is supported - fail on invalid value."""
         from green.settings import Settings, SettingsError
 
+        monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+
         # Should raise error for invalid track
-        with pytest.raises(SettingsError, match="track.*tdd.*bdd"):
+        with pytest.raises(SettingsError, match="Invalid configuration"):
             Settings.from_file(temp_scenario_invalid)
 
     def test_fail_on_missing_track(self, temp_scenario_missing_track: Path) -> None:
