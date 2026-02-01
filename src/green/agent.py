@@ -127,17 +127,19 @@ def load_task(task_dir: Path, track: Literal["tdd", "bdd"]) -> Task:
     )
 
 
-def execute_test_against_correct(
-    test_code: str, correct_implementation: str, track: Literal["tdd", "bdd"]
+def _execute_test_in_isolation(
+    test_code: str, implementation: str, implementation_filename: str, track: Literal["tdd", "bdd"]
 ) -> TestExecutionResult:
-    """Execute generated tests against correct implementation.
+    """Execute tests against an implementation in isolated environment.
 
-    Creates isolated test environment, writes test code and implementation,
-    executes pytest with timeout, captures results, and cleans up.
+    Internal helper function that creates isolated test environment,
+    writes test code and implementation, executes pytest with timeout,
+    captures results, and cleans up.
 
     Args:
         test_code: Generated test code to execute
-        correct_implementation: Correct implementation code
+        implementation: Implementation code to test against
+        implementation_filename: Name of implementation file (e.g., "correct.py" or "buggy.py")
         track: Evaluation track ("tdd" or "bdd")
 
     Returns:
@@ -147,9 +149,9 @@ def execute_test_against_correct(
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
 
-        # Write correct.py to temp directory
-        correct_file = temp_path / "correct.py"
-        correct_file.write_text(correct_implementation)
+        # Write implementation to temp directory
+        impl_file = temp_path / implementation_filename
+        impl_file.write_text(implementation)
 
         # Write test code to file
         test_file = temp_path / "test_generated.py"
@@ -186,3 +188,47 @@ def execute_test_against_correct(
             passed=(exit_code == 0),
         )
         # Temp directory automatically cleaned up by context manager
+
+
+def execute_test_against_correct(
+    test_code: str, correct_implementation: str, track: Literal["tdd", "bdd"]
+) -> TestExecutionResult:
+    """Execute generated tests against correct implementation.
+
+    Creates isolated test environment, writes test code and implementation,
+    executes pytest with timeout, captures results, and cleans up.
+
+    Args:
+        test_code: Generated test code to execute
+        correct_implementation: Correct implementation code
+        track: Evaluation track ("tdd" or "bdd")
+
+    Returns:
+        TestExecutionResult with exit code, stdout, stderr, execution time, and pass/fail status
+    """
+    return _execute_test_in_isolation(test_code, correct_implementation, "correct.py", track)
+
+
+def execute_test_against_buggy(
+    test_code: str, buggy_implementation: str, track: Literal["tdd", "bdd"]
+) -> TestExecutionResult:
+    """Execute generated tests against buggy implementation.
+
+    Creates isolated test environment, writes test code and buggy implementation,
+    executes pytest with timeout, captures results, and cleans up.
+
+    Tests are expected to FAIL when run against buggy code (detecting injected bugs).
+    The result indicates whether the tests detected the bug:
+    - passed=False (exit_code != 0): Bug detected (tests failed as expected)
+    - passed=True (exit_code == 0): Bug missed (tests passed despite buggy code)
+
+    Args:
+        test_code: Generated test code to execute
+        buggy_implementation: Buggy implementation with injected defects
+        track: Evaluation track ("tdd" or "bdd")
+
+    Returns:
+        TestExecutionResult with exit code, stdout, stderr, execution time, and pass/fail status.
+        Assertion failures in stdout/stderr indicate bug detection.
+    """
+    return _execute_test_in_isolation(test_code, buggy_implementation, "buggy.py", track)
