@@ -3,13 +3,12 @@
 Tests A2A protocol communication, retry logic, timeout handling, and validation.
 """
 
-import ast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
 
-from green.messenger import PurpleAgentMessenger, PurpleAgentError
+from green.messenger import PurpleAgentError, PurpleAgentMessenger
 
 
 @pytest.fixture
