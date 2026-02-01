@@ -31,12 +31,16 @@ def temp_tdd_task(tmp_path: Path) -> Path:
 
     # Create metadata.json
     metadata_json = task_dir / "metadata.json"
-    metadata_json.write_text(json.dumps({
-        "task_id": "task_001_example_function",
-        "function_name": "example_function",
-        "track": "tdd",
-        "source": "test"
-    }))
+    metadata_json.write_text(
+        json.dumps(
+            {
+                "task_id": "task_001_example_function",
+                "function_name": "example_function",
+                "track": "tdd",
+                "source": "test",
+            }
+        )
+    )
 
     # Create implementation directory with correct.py and buggy.py
     impl_dir = task_dir / "implementation"
@@ -77,7 +81,7 @@ def temp_bdd_task(tmp_path: Path) -> Path:
 
     # Create spec.feature with Gherkin scenarios
     spec_feature = task_dir / "spec.feature"
-    spec_feature.write_text('''Feature: Example function
+    spec_feature.write_text("""Feature: Example function
   Test the example_function behavior
 
   Scenario: Multiply by two
@@ -89,16 +93,20 @@ def temp_bdd_task(tmp_path: Path) -> Path:
     Given a number 0
     When we call example_function
     Then the result should be 0
-''')
+""")
 
     # Create metadata.json
     metadata_json = task_dir / "metadata.json"
-    metadata_json.write_text(json.dumps({
-        "task_id": "task_001_example_function",
-        "function_name": "example_function",
-        "track": "bdd",
-        "source": "test"
-    }))
+    metadata_json.write_text(
+        json.dumps(
+            {
+                "task_id": "task_001_example_function",
+                "function_name": "example_function",
+                "track": "bdd",
+                "source": "test",
+            }
+        )
+    )
 
     # Create implementation directory with symlinks (BDD reuses TDD implementations)
     impl_dir = task_dir / "implementation"
@@ -247,11 +255,11 @@ class TestErrorHandling:
 
         # Create metadata but no spec.py
         metadata_json = task_dir / "metadata.json"
-        metadata_json.write_text(json.dumps({
-            "task_id": "task_001_missing_spec",
-            "function_name": "example",
-            "track": "tdd"
-        }))
+        metadata_json.write_text(
+            json.dumps(
+                {"task_id": "task_001_missing_spec", "function_name": "example", "track": "tdd"}
+            )
+        )
 
         with pytest.raises(TaskLoadError, match="spec.py"):
             load_task(task_dir, track="tdd")
@@ -265,7 +273,7 @@ class TestErrorHandling:
 
         # Create spec.py but no metadata.json
         spec_py = task_dir / "spec.py"
-        spec_py.write_text('def example(): pass')
+        spec_py.write_text("def example(): pass")
 
         with pytest.raises(TaskLoadError, match="metadata.json"):
             load_task(task_dir, track="tdd")
@@ -279,14 +287,14 @@ class TestErrorHandling:
 
         # Create spec.py and metadata but no implementations
         spec_py = task_dir / "spec.py"
-        spec_py.write_text('def example(): pass')
+        spec_py.write_text("def example(): pass")
 
         metadata_json = task_dir / "metadata.json"
-        metadata_json.write_text(json.dumps({
-            "task_id": "task_001_missing_correct",
-            "function_name": "example",
-            "track": "tdd"
-        }))
+        metadata_json.write_text(
+            json.dumps(
+                {"task_id": "task_001_missing_correct", "function_name": "example", "track": "tdd"}
+            )
+        )
 
         impl_dir = task_dir / "implementation"
         impl_dir.mkdir(parents=True, exist_ok=True)
@@ -303,20 +311,20 @@ class TestErrorHandling:
 
         # Create spec.py, metadata, and correct.py but no buggy.py
         spec_py = task_dir / "spec.py"
-        spec_py.write_text('def example(): pass')
+        spec_py.write_text("def example(): pass")
 
         metadata_json = task_dir / "metadata.json"
-        metadata_json.write_text(json.dumps({
-            "task_id": "task_001_missing_buggy",
-            "function_name": "example",
-            "track": "tdd"
-        }))
+        metadata_json.write_text(
+            json.dumps(
+                {"task_id": "task_001_missing_buggy", "function_name": "example", "track": "tdd"}
+            )
+        )
 
         impl_dir = task_dir / "implementation"
         impl_dir.mkdir(parents=True, exist_ok=True)
 
         correct_py = impl_dir / "correct.py"
-        correct_py.write_text('def example(): return 42')
+        correct_py.write_text("def example(): return 42")
 
         with pytest.raises(TaskLoadError, match="buggy.py"):
             load_task(task_dir, track="tdd")

@@ -85,6 +85,7 @@ class GreenAgentServer:
 
     def _add_health_endpoint(self) -> None:
         """Add health check endpoint to FastAPI app."""
+
         # Add health endpoint to the FastAPI app
         @self.app.get("/health")
         async def health() -> dict[str, str]:
