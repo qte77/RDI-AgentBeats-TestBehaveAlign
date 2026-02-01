@@ -132,7 +132,7 @@ class TestAgentCardEndpoint:
 
     @pytest.mark.asyncio
     async def test_agent_card_has_required_fields(
-        self, temp_scenario_file: Path, base_url: str, monkeypatch: pytest.MonkeyPatch
+        self, temp_scenario_file: Path, server_port: int, base_url: str, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Define AgentCard with skills and capabilities."""
         from green.server import create_server
@@ -159,8 +159,8 @@ class TestAgentCardEndpoint:
             assert "description" in agent_card
             assert "capabilities" in agent_card
             assert "skills" in agent_card
-            assert "default_input_modes" in agent_card
-            assert "default_output_modes" in agent_card
+            assert "defaultInputModes" in agent_card
+            assert "defaultOutputModes" in agent_card
         finally:
             server_task.cancel()
             try:
@@ -170,7 +170,7 @@ class TestAgentCardEndpoint:
 
     @pytest.mark.asyncio
     async def test_agent_card_identifies_as_green_agent(
-        self, temp_scenario_file: Path, base_url: str, monkeypatch: pytest.MonkeyPatch
+        self, temp_scenario_file: Path, server_port: int, base_url: str, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """AgentCard should identify as Green Agent with test evaluation capability."""
         from green.server import create_server
@@ -227,12 +227,13 @@ class TestEvaluateEndpoint:
             # Wait for server to be ready
             await asyncio.sleep(0.5)
 
-            # Make POST request to evaluate endpoint (use dynamic port)
+            # Make POST request to A2A message endpoint (use dynamic port)
+            # A2A SDK uses /v1/message:send for evaluation requests
             test_url = f"http://localhost:{server_port}"
             async with httpx.AsyncClient(timeout=30.0, trust_env=False) as client:
                 response = await client.post(
-                    f"{test_url}/evaluate",
-                    json={"task_ids": ["task_001"]},
+                    f"{test_url}/v1/message:send",
+                    json={"message": {"role": "user", "content": "evaluate tests"}},
                 )
 
             # Verify endpoint is accessible (even if it returns error, it should exist)
@@ -303,7 +304,6 @@ class TestHealthEndpoint:
         self,
         temp_scenario_file: Path,
         server_port: int,
-        base_url: str,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Health endpoint should return JSON with status."""
