@@ -561,7 +561,9 @@ def test_works():
     from correct import example_function
     assert example_function(5) == 10
 """
-        result = execute_test_against_correct(test_code=test_code, correct_implementation=correct_impl, track="tdd")
+        result = execute_test_against_correct(
+            test_code=test_code, correct_implementation=correct_impl, track="tdd"
+        )
         assert result.passed is True
         assert result.failure_type == "none"
 
@@ -575,7 +577,9 @@ def test_detects_bug():
     from buggy import example_function
     assert example_function(5) == 10
 """
-        result = execute_test_against_buggy(test_code=test_code, buggy_implementation=buggy_impl, track="tdd")
+        result = execute_test_against_buggy(
+            test_code=test_code, buggy_implementation=buggy_impl, track="tdd"
+        )
         assert result.passed is False
         assert result.failure_type == "assertion"
 
@@ -588,7 +592,9 @@ def test_detects_bug():
 def test_broken(
     # missing closing paren and colon
 """
-        result = execute_test_against_correct(test_code=test_code, correct_implementation=correct_impl, track="tdd")
+        result = execute_test_against_correct(
+            test_code=test_code, correct_implementation=correct_impl, track="tdd"
+        )
         assert result.passed is False
         assert result.failure_type == "infrastructure"
 
@@ -603,7 +609,9 @@ from nonexistent_module import something
 def test_import():
     assert something() == 42
 """
-        result = execute_test_against_correct(test_code=test_code, correct_implementation=correct_impl, track="tdd")
+        result = execute_test_against_correct(
+            test_code=test_code, correct_implementation=correct_impl, track="tdd"
+        )
         assert result.passed is False
         assert result.failure_type == "infrastructure"
 
@@ -618,7 +626,9 @@ import time
 def test_hangs():
     time.sleep(60)
 """
-        result = execute_test_against_correct(test_code=test_code, correct_implementation=correct_impl, track="tdd")
+        result = execute_test_against_correct(
+            test_code=test_code, correct_implementation=correct_impl, track="tdd"
+        )
         assert result.passed is False
         assert result.failure_type == "timeout"
 
@@ -627,7 +637,9 @@ def test_hangs():
         from green.agent import execute_test_against_correct
 
         correct_impl = (temp_tdd_task / "implementation" / "correct.py").read_text()
-        result = execute_test_against_correct(test_code="", correct_implementation=correct_impl, track="tdd")
+        result = execute_test_against_correct(
+            test_code="", correct_implementation=correct_impl, track="tdd"
+        )
         assert result.passed is False
         assert result.failure_type == "infrastructure"
 
@@ -641,7 +653,9 @@ def test_weak():
     from buggy import example_function
     assert isinstance(example_function(5), int)
 """
-        result = execute_test_against_buggy(test_code=test_code, buggy_implementation=buggy_impl, track="tdd")
+        result = execute_test_against_buggy(
+            test_code=test_code, buggy_implementation=buggy_impl, track="tdd"
+        )
         assert result.passed is True
         assert result.failure_type == "none"
 
@@ -655,7 +669,9 @@ def test_detects_off_by_one():
     from buggy import example_function
     assert example_function(0) == 0
 """
-        result = execute_test_against_buggy(test_code=test_code, buggy_implementation=buggy_impl, track="tdd")
+        result = execute_test_against_buggy(
+            test_code=test_code, buggy_implementation=buggy_impl, track="tdd"
+        )
         assert result.failure_type == "assertion"
         # pytest -v output should contain the test name
         assert "test_detects_off_by_one" in result.stdout
@@ -678,7 +694,9 @@ def test_works():
     from correct import example_function
     assert example_function(5) == 10
 """
-        result = execute_test_against_correct(test_code=test_code, correct_implementation=correct_impl, track="tdd")
+        result = execute_test_against_correct(
+            test_code=test_code, correct_implementation=correct_impl, track="tdd"
+        )
         assert result.failure_type == snapshot("none")
         assert result.passed == snapshot(True)
 
@@ -694,7 +712,9 @@ def test_detects_bug():
     from buggy import example_function
     assert example_function(5) == 10
 """
-        result = execute_test_against_buggy(test_code=test_code, buggy_implementation=buggy_impl, track="tdd")
+        result = execute_test_against_buggy(
+            test_code=test_code, buggy_implementation=buggy_impl, track="tdd"
+        )
         assert result.failure_type == snapshot("assertion")
         assert result.exit_code == snapshot(1)
 
@@ -706,7 +726,9 @@ def test_detects_bug():
 
         correct_impl = (temp_tdd_task / "implementation" / "correct.py").read_text()
         test_code = "def test_broken(\n"
-        result = execute_test_against_correct(test_code=test_code, correct_implementation=correct_impl, track="tdd")
+        result = execute_test_against_correct(
+            test_code=test_code, correct_implementation=correct_impl, track="tdd"
+        )
         assert result.failure_type == snapshot("infrastructure")
         assert result.passed == snapshot(False)
 
@@ -723,7 +745,9 @@ from nonexistent import foo
 def test_foo():
     assert foo() == 1
 """
-        result = execute_test_against_correct(test_code=test_code, correct_implementation=correct_impl, track="tdd")
+        result = execute_test_against_correct(
+            test_code=test_code, correct_implementation=correct_impl, track="tdd"
+        )
         assert result.failure_type == snapshot("infrastructure")
 
 

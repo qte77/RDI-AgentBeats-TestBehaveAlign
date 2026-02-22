@@ -16,10 +16,7 @@ import pytest
 @pytest.fixture
 def simple_implementation() -> str:
     """Simple correct implementation for mutation testing."""
-    return (
-        "def add(a: int, b: int) -> int:\n"
-        "    return a + b\n"
-    )
+    return "def add(a: int, b: int) -> int:\n    return a + b\n"
 
 
 @pytest.fixture
@@ -262,9 +259,7 @@ class TestRunMutationTesting:
         assert result.mutation_score == 0.0
         assert result.total == 0
 
-    def test_accepts_bdd_track(
-        self, simple_test_code: str, simple_implementation: str
-    ) -> None:
+    def test_accepts_bdd_track(self, simple_test_code: str, simple_implementation: str) -> None:
         """run_mutation_testing accepts bdd track without error."""
         from green.agent import run_mutation_testing
 
@@ -356,9 +351,7 @@ class TestParseMutmutOutput:
 class TestMutationTestingSnapshots:
     """Snapshot-based tests for mutation testing scoring."""
 
-    def test_all_killed_snapshot(
-        self, simple_test_code: str, simple_implementation: str
-    ) -> None:
+    def test_all_killed_snapshot(self, simple_test_code: str, simple_implementation: str) -> None:
         """Snapshot: all mutants killed returns score 1.0."""
         from inline_snapshot import snapshot
 
@@ -376,9 +369,7 @@ class TestMutationTestingSnapshots:
         assert result.killed == snapshot(4)
         assert result.total == snapshot(4)
 
-    def test_partial_kill_snapshot(
-        self, simple_test_code: str, simple_implementation: str
-    ) -> None:
+    def test_partial_kill_snapshot(self, simple_test_code: str, simple_implementation: str) -> None:
         """Snapshot: 3/4 mutants killed returns score 0.75."""
         from inline_snapshot import snapshot
 
@@ -394,9 +385,7 @@ class TestMutationTestingSnapshots:
 
         assert result.mutation_score == snapshot(0.75)
 
-    def test_unavailable_snapshot(
-        self, simple_test_code: str, simple_implementation: str
-    ) -> None:
+    def test_unavailable_snapshot(self, simple_test_code: str, simple_implementation: str) -> None:
         """Snapshot: mutmut unavailable returns score 0.0 with error."""
         from inline_snapshot import snapshot
 

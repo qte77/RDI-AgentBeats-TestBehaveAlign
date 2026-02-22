@@ -345,14 +345,18 @@ class TestFaultDetectionProperties:
         def check_none_correct(
             correct: TestExecutionResult | None, buggy: TestExecutionResult | None
         ) -> None:
-            assert calculate_fault_detection_score(correct_result=correct, buggy_result=buggy) == 0.0
+            assert (
+                calculate_fault_detection_score(correct_result=correct, buggy_result=buggy) == 0.0
+            )
 
         @given(correct=result_or_none, buggy=st.none())
         @settings(max_examples=20)
         def check_none_buggy(
             correct: TestExecutionResult | None, buggy: TestExecutionResult | None
         ) -> None:
-            assert calculate_fault_detection_score(correct_result=correct, buggy_result=buggy) == 0.0
+            assert (
+                calculate_fault_detection_score(correct_result=correct, buggy_result=buggy) == 0.0
+            )
 
         check_none_correct()
         check_none_buggy()
