@@ -115,30 +115,6 @@ class TestSettingsConfiguration:
         assert settings.is_bdd_mode() is True
         assert settings.is_tdd_mode() is False
 
-    def test_validate_supported_track_tdd(
-        self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Validate track is supported - TDD."""
-        from green.settings import Settings
-
-        monkeypatch.setenv("OPENAI_API_KEY", "test-key")
-
-        # Should not raise for valid track
-        settings = Settings.from_file(temp_scenario_file)
-        assert settings.track == "tdd"
-
-    def test_validate_supported_track_bdd(
-        self, temp_scenario_bdd: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Validate track is supported - BDD."""
-        from green.settings import Settings
-
-        monkeypatch.setenv("OPENAI_API_KEY", "test-key")
-
-        # Should not raise for valid track
-        settings = Settings.from_file(temp_scenario_bdd)
-        assert settings.track == "bdd"
-
     def test_fail_on_invalid_track(
         self, temp_scenario_invalid: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:

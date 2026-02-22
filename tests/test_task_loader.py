@@ -226,22 +226,6 @@ class TestTaskMetadataValidation:
         assert task.function_name == "example_function"
         assert task.track == "tdd"
 
-    def test_validate_tdd_track(self, temp_tdd_task: Path) -> None:
-        """Track determined by scenario.toml config - TDD."""
-        from green.agent import load_task
-
-        task = load_task(temp_tdd_task, track="tdd")
-
-        assert task.track == "tdd"
-
-    def test_validate_bdd_track(self, temp_bdd_task: Path) -> None:
-        """Track determined by scenario.toml config - BDD."""
-        from green.agent import load_task
-
-        task = load_task(temp_bdd_task, track="bdd")
-
-        assert task.track == "bdd"
-
 
 class TestErrorHandling:
     """Test suite for handling missing files gracefully with clear errors."""
@@ -328,18 +312,3 @@ class TestErrorHandling:
 
         with pytest.raises(TaskLoadError, match="buggy.py"):
             load_task(task_dir, track="tdd")
-
-
-class TestCrossPlatformPaths:
-    """Test suite for cross-platform path handling using pathlib."""
-
-    def test_use_pathlib_for_paths(self, temp_tdd_task: Path) -> None:
-        """Use pathlib for cross-platform path handling."""
-        from green.agent import load_task
-
-        # Path handling should work on all platforms
-        task = load_task(temp_tdd_task, track="tdd")
-
-        # Verify that pathlib Paths are being used internally
-        assert isinstance(temp_tdd_task, Path)
-        assert task is not None

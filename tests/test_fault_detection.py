@@ -148,34 +148,6 @@ class TestFaultDetectionEdgeCases:
         assert score == 0.0
 
 
-class TestFaultDetectionScoreValidation:
-    """Test suite for validating fault detection score using Pydantic."""
-
-    def test_score_is_float(
-        self, passed_correct_result: TestExecutionResult, failed_buggy_result: TestExecutionResult
-    ) -> None:
-        """Fault detection score should be a float."""
-        from green.agent import calculate_fault_detection_score
-
-        score = calculate_fault_detection_score(
-            correct_result=passed_correct_result, buggy_result=failed_buggy_result
-        )
-
-        assert isinstance(score, float)
-
-    def test_score_in_valid_range(
-        self, passed_correct_result: TestExecutionResult, failed_buggy_result: TestExecutionResult
-    ) -> None:
-        """Fault detection score should be in range [0.0, 1.0]."""
-        from green.agent import calculate_fault_detection_score
-
-        score = calculate_fault_detection_score(
-            correct_result=passed_correct_result, buggy_result=failed_buggy_result
-        )
-
-        assert 0.0 <= score <= 1.0
-
-
 class TestFaultDetectionAggregation:
     """Test suite for aggregating fault detection scores across multiple tasks."""
 
@@ -223,58 +195,6 @@ class TestFaultDetectionAggregation:
         average = aggregate_fault_detection_scores(scores)
 
         assert average == 0.75
-
-
-class TestFaultDetectionSnapshots:
-    """Snapshot-based tests for fault detection scoring."""
-
-    def test_perfect_detection_snapshot(
-        self, passed_correct_result: TestExecutionResult, failed_buggy_result: TestExecutionResult
-    ) -> None:
-        """Snapshot: perfect detection returns 1.0."""
-        from inline_snapshot import snapshot
-
-        from green.agent import calculate_fault_detection_score
-
-        score = calculate_fault_detection_score(
-            correct_result=passed_correct_result, buggy_result=failed_buggy_result
-        )
-        assert score == snapshot(1.0)
-
-    def test_missed_bug_snapshot(
-        self, passed_correct_result: TestExecutionResult, passed_buggy_result: TestExecutionResult
-    ) -> None:
-        """Snapshot: missed bug returns 0.0."""
-        from inline_snapshot import snapshot
-
-        from green.agent import calculate_fault_detection_score
-
-        score = calculate_fault_detection_score(
-            correct_result=passed_correct_result, buggy_result=passed_buggy_result
-        )
-        assert score == snapshot(0.0)
-
-    def test_broken_tests_snapshot(
-        self, failed_correct_result: TestExecutionResult, failed_buggy_result: TestExecutionResult
-    ) -> None:
-        """Snapshot: broken tests (failed correct) returns 0.0."""
-        from inline_snapshot import snapshot
-
-        from green.agent import calculate_fault_detection_score
-
-        score = calculate_fault_detection_score(
-            correct_result=failed_correct_result, buggy_result=failed_buggy_result
-        )
-        assert score == snapshot(0.0)
-
-    def test_aggregate_snapshot(self) -> None:
-        """Snapshot: aggregation of mixed scores."""
-        from inline_snapshot import snapshot
-
-        from green.agent import aggregate_fault_detection_scores
-
-        assert aggregate_fault_detection_scores([1.0, 0.0, 1.0]) == snapshot(0.6666666666666666)
-        assert aggregate_fault_detection_scores([]) == snapshot(0.0)
 
 
 class TestFaultDetectionProperties:

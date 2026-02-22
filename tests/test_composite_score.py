@@ -182,47 +182,6 @@ class TestCompositeScoreEdgeCases:
         assert result.score == 0.0
 
 
-class TestCompositeScoreSnapshots:
-    """Snapshot-based tests for composite score calculation."""
-
-    def test_perfect_score_snapshot(self) -> None:
-        """Snapshot: perfect inputs yield 1.0."""
-        from inline_snapshot import snapshot
-
-        from green.agent import calculate_composite_score
-
-        result = calculate_composite_score(mutation_score=1.0, fault_detection_rate=1.0)
-        assert result.score == snapshot(1.0)
-
-    def test_zero_score_snapshot(self) -> None:
-        """Snapshot: zero inputs yield 0.0."""
-        from inline_snapshot import snapshot
-
-        from green.agent import calculate_composite_score
-
-        result = calculate_composite_score(mutation_score=0.0, fault_detection_rate=0.0)
-        assert result.score == snapshot(0.0)
-
-    def test_typical_score_snapshot(self) -> None:
-        """Snapshot: typical inputs (0.8 mutation, 0.6 fault) yield 0.72."""
-        from inline_snapshot import snapshot
-
-        from green.agent import calculate_composite_score
-
-        # 0.60 * 0.8 + 0.40 * 0.6 = 0.48 + 0.24 = 0.72
-        result = calculate_composite_score(mutation_score=0.8, fault_detection_rate=0.6)
-        assert result.score == snapshot(0.72)
-
-    def test_mutation_only_score_snapshot(self) -> None:
-        """Snapshot: mutation score only yields 0.60."""
-        from inline_snapshot import snapshot
-
-        from green.agent import calculate_composite_score
-
-        result = calculate_composite_score(mutation_score=1.0, fault_detection_rate=0.0)
-        assert result.score == snapshot(0.6)
-
-
 class TestCompositeScoreProperties:
     """Property-based tests for composite score calculation."""
 

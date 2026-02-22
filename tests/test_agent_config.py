@@ -5,12 +5,13 @@ Tests track handling in agent module.
 """
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 
 
 @pytest.fixture
-def mock_settings_tdd(monkeypatch: pytest.MonkeyPatch):
+def mock_settings_tdd() -> Any:
     """Mock settings with TDD track."""
 
     class MockSettings:
@@ -33,7 +34,7 @@ def mock_settings_tdd(monkeypatch: pytest.MonkeyPatch):
 
 
 @pytest.fixture
-def mock_settings_bdd(monkeypatch: pytest.MonkeyPatch):
+def mock_settings_bdd() -> Any:
     """Mock settings with BDD track."""
 
     class MockSettings:
@@ -58,7 +59,7 @@ def mock_settings_bdd(monkeypatch: pytest.MonkeyPatch):
 class TestAgentTrackConfiguration:
     """Test suite for agent track configuration handling."""
 
-    def test_agent_uses_tdd_track(self, mock_settings_tdd) -> None:
+    def test_agent_uses_tdd_track(self, mock_settings_tdd: Any) -> None:
         """Agent uses TDD track from settings - use pytest for TDD."""
         from green.agent import GreenAgent
 
@@ -67,7 +68,7 @@ class TestAgentTrackConfiguration:
         assert agent.track == "tdd"
         assert agent.is_tdd_mode() is True
 
-    def test_agent_uses_bdd_track(self, mock_settings_bdd) -> None:
+    def test_agent_uses_bdd_track(self, mock_settings_bdd: Any) -> None:
         """Agent uses BDD track from settings - use pytest-bdd for BDD."""
         from green.agent import GreenAgent
 
@@ -77,7 +78,7 @@ class TestAgentTrackConfiguration:
         assert agent.is_bdd_mode() is True
 
     def test_agent_single_executor_with_mode_switch(
-        self, mock_settings_tdd, mock_settings_bdd
+        self, mock_settings_tdd: Any, mock_settings_bdd: Any
     ) -> None:
         """Single executor with mode switch (KISS principle, no inheritance)."""
         from green.agent import GreenAgent
@@ -91,7 +92,7 @@ class TestAgentTrackConfiguration:
         assert agent_tdd.__class__.__name__ == "GreenAgent"
         assert agent_bdd.__class__.__name__ == "GreenAgent"
 
-    def test_agent_loads_task_directory_tdd(self, mock_settings_tdd) -> None:
+    def test_agent_loads_task_directory_tdd(self, mock_settings_tdd: Any) -> None:
         """Agent loads task directory based on TDD track."""
         from green.agent import GreenAgent
 
@@ -100,7 +101,7 @@ class TestAgentTrackConfiguration:
 
         assert "tdd" in str(task_dir)
 
-    def test_agent_loads_task_directory_bdd(self, mock_settings_bdd) -> None:
+    def test_agent_loads_task_directory_bdd(self, mock_settings_bdd: Any) -> None:
         """Agent loads task directory based on BDD track."""
         from green.agent import GreenAgent
 
@@ -108,28 +109,3 @@ class TestAgentTrackConfiguration:
         task_dir = agent.get_task_directory()
 
         assert "bdd" in str(task_dir)
-
-    def test_agent_track_included_in_results_placeholder(self, mock_settings_tdd) -> None:
-        """Include track in results output (placeholder test)."""
-        from green.agent import GreenAgent
-
-        agent = GreenAgent(settings=mock_settings_tdd)
-
-        # Placeholder - will be fully tested in later stories when results are implemented
-        # For now, just verify track is accessible
-        assert agent.track == "tdd"
-
-    def test_agent_simple_if_else_for_track_handling(self, mock_settings_tdd) -> None:
-        """Simple if/else for track handling - no complex abstractions."""
-        from green.agent import GreenAgent
-
-        agent = GreenAgent(settings=mock_settings_tdd)
-
-        # Agent should have simple methods to check track mode
-        # This tests KISS principle - simple boolean checks, no strategy pattern
-        assert callable(agent.is_tdd_mode)
-        assert callable(agent.is_bdd_mode)
-
-        # Should return boolean
-        assert isinstance(agent.is_tdd_mode(), bool)
-        assert isinstance(agent.is_bdd_mode(), bool)

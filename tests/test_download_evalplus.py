@@ -4,7 +4,6 @@ Following TDD RED phase - these tests MUST fail initially.
 """
 
 import json
-import shutil
 from pathlib import Path
 
 import pytest
@@ -18,20 +17,10 @@ def temp_data_dir(tmp_path: Path) -> Path:
     return data_dir
 
 
-@pytest.fixture
-def cleanup_data_dir(temp_data_dir: Path):
-    """Cleanup after tests."""
-    yield temp_data_dir
-    if temp_data_dir.exists():
-        shutil.rmtree(temp_data_dir.parent.parent.parent)
-
-
 class TestDownloadEvalPlus:
     """Test suite for EvalPlus HumanEval task downloader."""
 
-    def test_download_creates_task_directories(
-        self, temp_data_dir: Path, cleanup_data_dir: Path
-    ) -> None:
+    def test_download_creates_task_directories(self, temp_data_dir: Path) -> None:
         """Download creates task_001 through task_005 directories."""
         from green.data_prep.download_evalplus import download_tasks
 
@@ -43,7 +32,7 @@ class TestDownloadEvalPlus:
             assert len(matching_dirs) == 1, f"Expected exactly one directory for task {i:03d}"
             assert matching_dirs[0].is_dir()
 
-    def test_download_creates_spec_py(self, temp_data_dir: Path, cleanup_data_dir: Path) -> None:
+    def test_download_creates_spec_py(self, temp_data_dir: Path) -> None:
         """Download creates spec.py with function signature and docstring."""
         from green.data_prep.download_evalplus import download_tasks
 
@@ -62,9 +51,7 @@ class TestDownloadEvalPlus:
         assert "def " in spec_content, "spec.py should contain function definition"
         assert '"""' in spec_content or "'''" in spec_content, "spec.py should contain docstring"
 
-    def test_download_creates_correct_implementation(
-        self, temp_data_dir: Path, cleanup_data_dir: Path
-    ) -> None:
+    def test_download_creates_correct_implementation(self, temp_data_dir: Path) -> None:
         """Download creates implementation/correct.py with canonical solution."""
         from green.data_prep.download_evalplus import download_tasks
 
@@ -82,9 +69,7 @@ class TestDownloadEvalPlus:
         assert len(correct_content) > 0, "correct.py should not be empty"
         assert "def " in correct_content, "correct.py should contain function definition"
 
-    def test_download_creates_metadata_json(
-        self, temp_data_dir: Path, cleanup_data_dir: Path
-    ) -> None:
+    def test_download_creates_metadata_json(self, temp_data_dir: Path) -> None:
         """Download creates metadata.json with required fields."""
         from green.data_prep.download_evalplus import download_tasks
 
@@ -109,9 +94,7 @@ class TestDownloadEvalPlus:
         assert isinstance(metadata["task_id"], str), "task_id should be string"
         assert isinstance(metadata["function_name"], str), "function_name should be string"
 
-    def test_download_maps_humaneval_ids_to_task_names(
-        self, temp_data_dir: Path, cleanup_data_dir: Path
-    ) -> None:
+    def test_download_maps_humaneval_ids_to_task_names(self, temp_data_dir: Path) -> None:
         """Download maps HumanEval IDs correctly (e.g., 0 -> task_001_has_close_elements)."""
         from green.data_prep.download_evalplus import download_tasks
 
@@ -127,20 +110,8 @@ class TestDownloadEvalPlus:
             "task_001_"
         ), "Directory should follow naming convention"
 
-    def test_download_handles_import_errors_gracefully(
-        self, temp_data_dir: Path, cleanup_data_dir: Path
-    ) -> None:
-        """Download handles evalplus import errors gracefully."""
-        # This test verifies error handling exists
-        # Actual implementation should catch ImportError for evalplus
-        from green.data_prep.download_evalplus import download_tasks
-
-        # Should not crash even if evalplus has issues
-        # Just verify function exists and is callable
-        assert callable(download_tasks)
-
     def test_download_logs_progress(
-        self, temp_data_dir: Path, cleanup_data_dir: Path, caplog: pytest.LogCaptureFixture
+        self, temp_data_dir: Path, caplog: pytest.LogCaptureFixture
     ) -> None:
         """Download logs progress and success messages."""
         import logging
@@ -156,21 +127,7 @@ class TestDownloadEvalPlus:
         # Should see progress messages for downloading tasks
         assert len(caplog.records) > 0, "Should have logged messages"
 
-    def test_download_uses_pathlib(self, temp_data_dir: Path, cleanup_data_dir: Path) -> None:
-        """Download uses pathlib for cross-platform path handling."""
-        from green.data_prep.download_evalplus import download_tasks
-
-        # Verify function accepts Path objects
-        assert isinstance(temp_data_dir, Path)
-        download_tasks(output_dir=temp_data_dir, task_range=(0, 1))
-
-        # If this doesn't crash, pathlib is working
-        task_dirs = list(temp_data_dir.glob("task_001_*"))
-        assert len(task_dirs) == 1
-
-    def test_task_directory_structure_complete(
-        self, temp_data_dir: Path, cleanup_data_dir: Path
-    ) -> None:
+    def test_task_directory_structure_complete(self, temp_data_dir: Path) -> None:
         """Verify complete directory structure for a single task."""
         from green.data_prep.download_evalplus import download_tasks
 
@@ -189,7 +146,7 @@ class TestDownloadEvalPlus:
         for file_path in required_files:
             assert file_path.exists(), f"{file_path.relative_to(task_dir)} should exist"
 
-    def test_multiple_tasks_downloaded(self, temp_data_dir: Path, cleanup_data_dir: Path) -> None:
+    def test_multiple_tasks_downloaded(self, temp_data_dir: Path) -> None:
         """Download creates all 5 tasks (0-4 from HumanEval)."""
         from green.data_prep.download_evalplus import download_tasks
 

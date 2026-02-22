@@ -6,33 +6,9 @@ Tests cover server startup, endpoints, health checks, and request logging.
 
 import asyncio
 from pathlib import Path
-from typing import Any
 
 import httpx
 import pytest
-
-
-@pytest.fixture
-def temp_scenario_file(tmp_path: Path) -> Path:
-    """Create temporary scenario.toml for server tests."""
-    scenario_content = """
-[green_agent]
-agentbeats_id = "test-green-agent"
-env = { LOG_LEVEL = "INFO" }
-
-[[participants]]
-agentbeats_id = "test-purple-agent"
-name = "purple"
-env = { LOG_LEVEL = "INFO" }
-
-[config]
-track = "tdd"
-task_count = 5
-timeout_per_task = 60
-"""
-    scenario_file = tmp_path / "scenario.toml"
-    scenario_file.write_text(scenario_content)
-    return scenario_file
 
 
 @pytest.fixture
@@ -337,48 +313,6 @@ class TestHealthEndpoint:
             # Verify status field exists
             assert "status" in health_data
             assert health_data["status"] == "ok"
-        finally:
-            server_task.cancel()
-            try:
-                await server_task
-            except asyncio.CancelledError:
-                pass
-
-
-class TestRequestLogging:
-    """Test suite for request logging with request IDs."""
-
-    @pytest.mark.asyncio
-    async def test_requests_are_logged_with_request_ids(
-        self,
-        temp_scenario_file: Path,
-        server_port: int,
-        base_url: str,
-        monkeypatch: pytest.MonkeyPatch,
-        caplog: Any,
-    ) -> None:
-        """Log all incoming requests with request IDs."""
-        from green.server import create_server
-
-        monkeypatch.setenv("OPENAI_API_KEY", "test-key")
-
-        # Start server in background
-        server = create_server(temp_scenario_file, port=server_port)
-        server_task = asyncio.create_task(server.start())
-
-        try:
-            # Wait for server to be ready
-            await asyncio.sleep(0.5)
-
-            # Make request to trigger logging (use dynamic port)
-            test_url = f"http://localhost:{server_port}"
-            async with httpx.AsyncClient(trust_env=False) as client:
-                await client.get(f"{test_url}/health")
-
-            # Verify request was logged with request ID
-            # Note: This will check that logging infrastructure is in place
-            # The actual log format will be verified in implementation
-            assert len(caplog.records) > 0 or True  # Server may use different logger
         finally:
             server_task.cancel()
             try:

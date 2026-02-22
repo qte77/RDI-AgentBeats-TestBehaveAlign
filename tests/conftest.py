@@ -1,6 +1,7 @@
 """Pytest configuration and shared fixtures."""
 
 import sys
+from pathlib import Path
 
 # CRITICAL: Fix for Pydantic + Python 3.13 + a2a-sdk compatibility issue
 # Ensure pydantic.root_model is properly registered in sys.modules before
@@ -15,6 +16,29 @@ if "pydantic.root_model" not in sys.modules:
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+
+@pytest.fixture
+def temp_scenario_file(tmp_path: Path) -> Path:
+    """Create temporary scenario.toml for tests."""
+    scenario_content = """
+[green_agent]
+agentbeats_id = "test-green-agent"
+env = { LOG_LEVEL = "INFO" }
+
+[[participants]]
+agentbeats_id = "test-purple-agent"
+name = "purple"
+env = { LOG_LEVEL = "INFO" }
+
+[config]
+track = "tdd"
+task_count = 5
+timeout_per_task = 60
+"""
+    scenario_file = tmp_path / "scenario.toml"
+    scenario_file.write_text(scenario_content)
+    return scenario_file
 
 
 @pytest.fixture(autouse=True)

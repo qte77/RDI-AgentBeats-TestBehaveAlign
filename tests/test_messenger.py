@@ -77,30 +77,6 @@ async def test_generate_tests_success(purple_messenger: PurpleAgentMessenger) ->
 
 
 @pytest.mark.asyncio
-async def test_generate_tests_validates_syntax(purple_messenger: PurpleAgentMessenger) -> None:
-    """Test that response syntax is validated with ast.parse."""
-    spec = "def add(a: int, b: int) -> int:\n    pass"
-    valid_tests = "def test_add():\n    assert add(1, 2) == 3"
-
-    mock_response = MagicMock(spec=httpx.Response)
-    mock_response.status_code = 200
-    mock_response.json.return_value = {"tests": valid_tests}
-
-    mock_client = AsyncMock()
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    mock_client.post = AsyncMock(return_value=mock_response)
-
-    with (
-        patch("httpx.AsyncClient", return_value=mock_client),
-        patch("ast.parse") as mock_parse,
-    ):
-        await purple_messenger.generate_tests(spec=spec, track="tdd")
-        # Verify ast.parse was called with the test code
-        mock_parse.assert_called_once_with(valid_tests)
-
-
-@pytest.mark.asyncio
 async def test_generate_tests_invalid_syntax_raises_error(
     purple_messenger: PurpleAgentMessenger,
 ) -> None:

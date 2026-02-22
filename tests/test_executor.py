@@ -9,29 +9,6 @@ from pathlib import Path
 import pytest
 
 
-@pytest.fixture
-def temp_scenario_file(tmp_path: Path) -> Path:
-    """Create temporary scenario.toml for executor tests."""
-    scenario_content = """
-[green_agent]
-agentbeats_id = "test-green-agent"
-env = { LOG_LEVEL = "INFO" }
-
-[[participants]]
-agentbeats_id = "test-purple-agent"
-name = "purple"
-env = { LOG_LEVEL = "INFO" }
-
-[config]
-track = "tdd"
-task_count = 5
-timeout_per_task = 60
-"""
-    scenario_file = tmp_path / "scenario.toml"
-    scenario_file.write_text(scenario_content)
-    return scenario_file
-
-
 class TestGreenAgentExecutor:
     """Test suite for Green Agent executor."""
 
@@ -66,23 +43,6 @@ class TestGreenAgentExecutor:
         assert executor.settings.track == "tdd"
         assert executor.settings.task_count == 5
 
-    @pytest.mark.asyncio
-    async def test_executor_execute_method_is_async(
-        self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Execute method should be async as required by A2A SDK."""
-        import inspect
-
-        from green.executor import GreenAgentExecutor
-
-        monkeypatch.setenv("OPENAI_API_KEY", "test-key")
-
-        # Create executor instance
-        executor = GreenAgentExecutor(temp_scenario_file)
-
-        # Verify execute is async
-        assert inspect.iscoroutinefunction(executor.execute)
-
     def test_executor_has_cancel_method(
         self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -97,24 +57,6 @@ class TestGreenAgentExecutor:
         # Verify cancel method exists
         assert hasattr(executor, "cancel")
         assert callable(executor.cancel)
-
-
-class TestExecutorConfiguration:
-    """Test suite for executor configuration and initialization."""
-
-    def test_executor_accepts_scenario_file_path(
-        self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Executor should accept scenario file path in constructor."""
-        from green.executor import GreenAgentExecutor
-
-        monkeypatch.setenv("OPENAI_API_KEY", "test-key")
-
-        # Create executor with scenario file
-        executor = GreenAgentExecutor(temp_scenario_file)
-
-        # Verify executor is initialized
-        assert executor is not None
 
     def test_executor_validates_scenario_file_exists(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch

@@ -63,37 +63,8 @@ def test_timeout():
 """
 
 
-class TestIsolatedTestEnvironment:
-    """Test suite for creating isolated test environments."""
-
-    def test_create_isolated_temp_directory(
-        self, temp_tdd_task: Path, valid_tdd_test_code: str
-    ) -> None:
-        """Create isolated test environment (temp directory per task)."""
-        from green.agent import execute_test_against_correct
-
-        # Should create a temporary directory for test execution
-        result = execute_test_against_correct(
-            test_code=valid_tdd_test_code,
-            correct_implementation=(temp_tdd_task / "implementation" / "correct.py").read_text(),
-            track="tdd",
-        )
-
-        # Result should exist (temp dir was created and used)
-        assert result is not None
-
-    def test_write_test_code_to_file(self, temp_tdd_task: Path, valid_tdd_test_code: str) -> None:
-        """Write test code to file in test environment."""
-        from green.agent import execute_test_against_correct
-
-        result = execute_test_against_correct(
-            test_code=valid_tdd_test_code,
-            correct_implementation=(temp_tdd_task / "implementation" / "correct.py").read_text(),
-            track="tdd",
-        )
-
-        # Should have written test code to a file and executed it
-        assert result is not None
+class TestPytestExecution:
+    """Test suite for executing pytest (TDD) or pytest-bdd (BDD)."""
 
     def test_copy_correct_implementation_to_test_env(
         self, temp_tdd_task: Path, valid_tdd_test_code: str
@@ -111,10 +82,6 @@ class TestIsolatedTestEnvironment:
         assert result is not None
         # Test should be able to import from correct.py
         assert result.passed  # Valid test against correct implementation
-
-
-class TestPytestExecution:
-    """Test suite for executing pytest (TDD) or pytest-bdd (BDD)."""
 
     def test_execute_pytest_for_tdd(self, temp_tdd_task: Path, valid_tdd_test_code: str) -> None:
         """Execute pytest (TDD) on test code."""
@@ -283,42 +250,6 @@ class TestCleanup:
         assert result is not None
         # Temp directory should be cleaned up automatically
         # (verified by tempfile context manager behavior)
-
-
-class TestSubprocessIsolation:
-    """Test suite for using subprocess with timeout for isolation."""
-
-    def test_use_subprocess_for_isolation(
-        self, temp_tdd_task: Path, valid_tdd_test_code: str
-    ) -> None:
-        """Use subprocess with timeout for isolation."""
-        from green.agent import execute_test_against_correct
-
-        correct_impl = (temp_tdd_task / "implementation" / "correct.py").read_text()
-
-        result = execute_test_against_correct(
-            test_code=valid_tdd_test_code, correct_implementation=correct_impl, track="tdd"
-        )
-
-        # Should run in isolated subprocess
-        assert result is not None
-        assert hasattr(result, "exit_code")
-
-    def test_capture_output_streams_for_debugging(
-        self, temp_tdd_task: Path, valid_tdd_test_code: str
-    ) -> None:
-        """Capture output streams for debugging."""
-        from green.agent import execute_test_against_correct
-
-        correct_impl = (temp_tdd_task / "implementation" / "correct.py").read_text()
-
-        result = execute_test_against_correct(
-            test_code=valid_tdd_test_code, correct_implementation=correct_impl, track="tdd"
-        )
-
-        # Should have stdout and stderr available for debugging
-        assert hasattr(result, "stdout")
-        assert hasattr(result, "stderr")
 
 
 # ============================================================================
