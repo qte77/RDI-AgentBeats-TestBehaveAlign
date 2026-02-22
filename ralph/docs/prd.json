@@ -284,8 +284,8 @@
         "src/green/agent.py",
         "src/green/models.py"
       ],
-      "passes": false,
-      "completed_at": null,
+      "passes": true,
+      "completed_at": "2026-02-22T14:44:36Z",
       "content_hash": "4ae651dfc703527ab6142a438037fdf70a5a5a075e1c175f17a1a029cc11652d",
       "depends_on": [
         "STORY-008"
