@@ -14,3 +14,22 @@ Discovered during `docker compose -f docker-compose-local.yml up --build`:
   `tomllib` (stdlib Python 3.13) — fixed, needs rebuild with `--no-cache`
 - [ ] Purple Agent: `server.py` was empty (no `create_app`) — fixed with
   minimal stub (health + agent-card), full impl deferred to Purple Sprint 1
+- [ ] Add Compose Watch (`develop.watch`) for live-reload during development
+  - Docs: https://docs.docker.com/compose/file-watch/
+  - Use `action: sync` for `src/` to hot-reload Python source into containers
+  - Use `action: rebuild` for `pyproject.toml` / `uv.lock` (dependency changes)
+  - Use `action: sync+restart` for `scenario.toml` (config reload needs restart)
+  - Run with `docker compose -f docker-compose-local.yml up --watch`
+  - Example for green service:
+    ```yaml
+    develop:
+      watch:
+        - action: sync
+          path: ./src/green
+          target: /app/src/green
+        - action: sync+restart
+          path: ./scenario.toml
+          target: /app/scenario.toml
+        - action: rebuild
+          path: ./pyproject.toml
+    ```
