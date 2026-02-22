@@ -45,7 +45,7 @@ def server_port() -> int:
 
     # Find an available port dynamically
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.bind(("", 0))
+        sock.bind(("127.0.0.1", 0))
         sock.listen(1)
         port = sock.getsockname()[1]
     return port
