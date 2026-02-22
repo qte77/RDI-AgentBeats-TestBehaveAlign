@@ -157,6 +157,16 @@ def _execute_test_in_isolation(
         test_file = temp_path / "test_generated.py"
         test_file.write_text(test_code)
 
+        # Block network access in test subprocess (STORY-008 AC fix)
+        conftest = temp_path / "conftest.py"
+        conftest.write_text(
+            "import socket as _socket\n"
+            "_original = _socket.socket\n"
+            "def _guard(*a, **kw):\n"
+            "    raise OSError('Network access disabled in test environment')\n"
+            "_socket.socket = _guard\n"
+        )
+
         # Execute pytest with 30-second timeout
         start_time = time.time()
         try:
