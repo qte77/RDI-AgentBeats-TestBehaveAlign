@@ -7,17 +7,50 @@ Serves AgentCard, evaluation endpoints, and health checks.
 import asyncio
 import logging
 import signal
+import time
 from pathlib import Path
+from uuid import uuid4
 
 import uvicorn
 from a2a.server.apps.rest.fastapi_app import A2ARESTFastAPIApplication
 from a2a.server.request_handlers.default_request_handler import DefaultRequestHandler
 from a2a.server.tasks.inmemory_task_store import InMemoryTaskStore
 from a2a.types import AgentCapabilities, AgentCard, AgentSkill
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.requests import Request
+from starlette.responses import Response
+from starlette.types import ASGIApp
 
 from green.executor import GreenAgentExecutor
 
 logger = logging.getLogger(__name__)
+
+
+class RequestIDMiddleware(BaseHTTPMiddleware):
+    """ASGI middleware that attaches a UUID4 request ID to each request."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        super().__init__(app)
+
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        """Process request: generate ID, log details, attach header."""
+        request_id = str(uuid4())
+        start = time.monotonic()
+
+        logger.info(
+            f"request_id={request_id} method={request.method} path={request.url.path} started"
+        )
+
+        response = await call_next(request)
+
+        duration_ms = (time.monotonic() - start) * 1000
+        logger.info(
+            f"request_id={request_id} method={request.method} path={request.url.path}"
+            f" status={response.status_code} duration_ms={duration_ms:.1f}"
+        )
+
+        response.headers["X-Request-ID"] = request_id
+        return response
 
 
 class GreenAgentServer:
@@ -72,6 +105,9 @@ class GreenAgentServer:
             http_handler=request_handler,
         )
         self.app = a2a_app.build()
+
+        # Add request ID logging middleware
+        self.app.add_middleware(RequestIDMiddleware)
 
         # Store agent_card on both server and app for easy access
         self.agent_card = agent_card
