@@ -610,6 +610,91 @@ def test_detects_off_by_one():
         assert "assert" in result.stdout.lower()
 
 
+class TestNetworkIsolationGuard:
+    """Test that conftest.py with socket patching is written to the test environment."""
+
+    def test_network_blocking_conftest_is_written(self, valid_tdd_test_code: str) -> None:
+        """conftest.py with socket guard is written before running tests."""
+        from pathlib import Path
+        from unittest.mock import MagicMock, patch
+
+        from green.agent import execute_test_against_correct
+
+        captured_conftest: list[str] = []
+
+        def capture_run(_cmd: object, **kwargs: object) -> MagicMock:
+            cwd = kwargs.get("cwd")
+            if cwd:
+                conftest_path = Path(str(cwd)) / "conftest.py"
+                if conftest_path.exists():
+                    captured_conftest.append(conftest_path.read_text())
+            mock = MagicMock()
+            mock.returncode = 0
+            mock.stdout = "1 passed"
+            mock.stderr = ""
+            return mock
+
+        correct_impl = "def example_function(x: int) -> int:\n    return x * 2\n"
+
+        with patch("green.agent.subprocess.run", side_effect=capture_run):
+            execute_test_against_correct(
+                test_code=valid_tdd_test_code,
+                correct_implementation=correct_impl,
+                track="tdd",
+            )
+
+        assert len(captured_conftest) > 0
+        content = captured_conftest[0]
+        assert "_socket.socket = _guard" in content
+        assert "Network access disabled" in content
+
+
+class TestTempDirectoryCleanup:
+    """Test that temp directories are deleted after test execution completes."""
+
+    def test_temp_directory_absent_after_execution(self, valid_tdd_test_code: str) -> None:
+        """Temp directory is deleted after execute_test_against_correct returns."""
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import MagicMock, patch
+
+        from green.agent import execute_test_against_correct
+
+        created_paths: list[str] = []
+        OriginalTempDir = tempfile.TemporaryDirectory
+
+        class TrackingTempDir:
+            def __init__(self) -> None:
+                self._real: tempfile.TemporaryDirectory[str] = OriginalTempDir()
+
+            def __enter__(self) -> str:
+                path = self._real.__enter__()
+                created_paths.append(path)
+                return path
+
+            def __exit__(self, *args: object) -> None:
+                self._real.__exit__(*args)  # type: ignore[arg-type]
+
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = "1 passed"
+        mock_result.stderr = ""
+
+        correct_impl = "def example_function(x: int) -> int:\n    return x * 2\n"
+
+        with patch("green.agent.subprocess.run", return_value=mock_result):
+            with patch("green.agent.tempfile.TemporaryDirectory", TrackingTempDir):
+                execute_test_against_correct(
+                    test_code=valid_tdd_test_code,
+                    correct_implementation=correct_impl,
+                    track="tdd",
+                )
+
+        assert len(created_paths) > 0
+        for path in created_paths:
+            assert not Path(path).exists(), f"Temp dir {path} should be cleaned up"
+
+
 class TestFailureClassificationSnapshots:
     """Snapshot-based tests for failure_type using inline-snapshot."""
 

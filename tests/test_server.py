@@ -375,6 +375,35 @@ class TestGracefulShutdown:
                 pass  # Expected on cancellation
 
 
+class TestUvicornConfiguration:
+    """Test suite for uvicorn ASGI server configuration."""
+
+    @pytest.mark.asyncio
+    async def test_uvicorn_configured_as_asgi_server(
+        self, temp_scenario_file: Path, server_port: int, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Uvicorn is used as the ASGI server in start()."""
+        from unittest.mock import AsyncMock, MagicMock, patch
+
+        import uvicorn
+
+        from green.server import create_server
+
+        monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+        server = create_server(temp_scenario_file, port=server_port)
+
+        mock_uvicorn_server = MagicMock()
+        mock_uvicorn_server.serve = AsyncMock()
+
+        with patch("green.server.uvicorn.Server", return_value=mock_uvicorn_server) as mock_cls:
+            await server.start()
+
+        mock_cls.assert_called_once()
+        config_arg = mock_cls.call_args[0][0]
+        assert isinstance(config_arg, uvicorn.Config)
+        assert config_arg.port == server_port
+
+
 class TestServerIntegration:
     """Integration tests for complete server functionality."""
 

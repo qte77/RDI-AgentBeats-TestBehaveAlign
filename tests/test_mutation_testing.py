@@ -212,6 +212,41 @@ class TestRunMutationTesting:
 # ---------------------------------------------------------------------------
 
 
+class TestMutmutConfiguration:
+    """Test that mutmut is configured with correct pyproject.toml settings."""
+
+    def test_per_mutant_timeout_in_pyproject_toml(
+        self, simple_test_code: str, simple_implementation: str
+    ) -> None:
+        """pyproject.toml is written with timeout = 10 for per-mutant timeout."""
+        import tomllib
+        from pathlib import Path
+        from unittest.mock import MagicMock, patch
+
+        from green.agent import run_mutation_testing
+
+        captured_toml: list[str] = []
+
+        def capture_run(_cmd: object, **kwargs: object) -> MagicMock:
+            cwd = kwargs.get("cwd")
+            if cwd:
+                toml_path = Path(str(cwd)) / "pyproject.toml"
+                if toml_path.exists():
+                    captured_toml.append(toml_path.read_text())
+            mock = MagicMock()
+            mock.returncode = 0
+            mock.stdout = "2/2 mutants killed\n"
+            mock.stderr = ""
+            return mock
+
+        with patch("green.agent.subprocess.run", side_effect=capture_run):
+            run_mutation_testing(simple_test_code, simple_implementation, "tdd")
+
+        assert len(captured_toml) > 0
+        config = tomllib.loads(captured_toml[0])
+        assert config["tool"]["mutmut"]["timeout"] == 10
+
+
 class TestMutationTestingProperties:
     """Property-based tests for mutation testing."""
 
