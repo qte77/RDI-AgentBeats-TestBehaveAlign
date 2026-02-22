@@ -1,7 +1,8 @@
 """Purple Agent messenger for A2A communication.
 
 Handles communication with Purple Agent via A2A protocol:
-- Agent card discovery
+- a2a-sdk ClientFactory with implicit AgentCard discovery
+- Client caching per agent URL
 - Test generation requests
 - Retry logic with exponential backoff
 - Timeout handling
@@ -11,9 +12,11 @@ Handles communication with Purple Agent via A2A protocol:
 import ast
 import asyncio
 import logging
-from typing import Any, Literal
+from typing import Literal
 
 import httpx
+from a2a.client import Client, ClientConfig, ClientFactory, create_text_message_object
+from a2a.types import TaskState, TextPart
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +30,8 @@ class PurpleAgentError(Exception):
 class PurpleAgentMessenger:
     """Messenger for communicating with Purple Agent via A2A protocol.
 
-    Handles agent discovery, test generation requests, retries, and validation.
+    Uses a2a-sdk ClientFactory for implicit AgentCard discovery, client caching,
+    and proper TaskState lifecycle tracking.
     """
 
     def __init__(
@@ -46,29 +50,20 @@ class PurpleAgentMessenger:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self.max_retries = max_retries
+        self._clients: dict[str, Client] = {}
 
-    async def discover_agent_card(self) -> dict[str, Any]:
-        """Discover Purple Agent via /.well-known/agent-card.json.
+    async def _get_client(self, url: str) -> Client:
+        """Return a cached client for url, creating one on first access."""
+        if url not in self._clients:
+            config = ClientConfig(
+                httpx_client=httpx.AsyncClient(timeout=self.timeout, trust_env=False)
+            )
+            self._clients[url] = await ClientFactory.connect(url, client_config=config)
+        return self._clients[url]
 
-        Returns:
-            Agent card metadata dictionary
-
-        Raises:
-            PurpleAgentError: If discovery fails
-        """
-        url = f"{self.base_url}/.well-known/agent-card.json"
-        logger.info(f"Discovering Purple Agent at {url}")
-
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(url, timeout=self.timeout)
-                response.raise_for_status()
-                agent_card = response.json()
-                logger.info(f"Discovered Purple Agent: {agent_card.get('name', 'Unknown')}")
-                return agent_card
-        except (httpx.HTTPError, httpx.ConnectError) as e:
-            logger.error(f"Failed to discover Purple Agent: {e}")
-            raise PurpleAgentError(f"Failed to discover Purple Agent: {e}")
+    async def close(self) -> None:
+        """Clean up all cached clients."""
+        self._clients.clear()
 
     async def generate_tests(
         self,
@@ -90,9 +85,7 @@ class PurpleAgentMessenger:
         Raises:
             PurpleAgentError: If request fails, times out, or response is invalid
         """
-        url = f"{self.base_url}/generate-tests"
-        payload = {"spec": spec, "track": track}
-
+        message = create_text_message_object(content=f"{track}:{spec}")
         last_error: Exception | None = None
 
         for attempt in range(self.max_retries):
@@ -101,27 +94,37 @@ class PurpleAgentMessenger:
                     f"Sending request to Purple Agent (attempt {attempt + 1}/{self.max_retries})"
                 )
 
-                async with httpx.AsyncClient() as client:
-                    response = await client.post(
-                        url,
-                        json=payload,
-                        timeout=self.timeout,
-                    )
-                    response.raise_for_status()
+                client = await self._get_client(self.base_url)
+                tests: str | None = None
 
-                    result = response.json()
-                    tests = result["tests"]
+                async for event in client.send_message(message):
+                    if isinstance(event, tuple):
+                        task, _ = event
+                        if task.status.state == TaskState.completed:
+                            if task.artifacts:
+                                for artifact in task.artifacts:
+                                    for part in artifact.parts:
+                                        if isinstance(part.root, TextPart):
+                                            tests = part.root.text
+                                            break
+                                    if tests is not None:
+                                        break
 
-                    logger.info(f"Received response from Purple Agent ({len(tests)} characters)")
+                if tests is None:
+                    raise PurpleAgentError("No tests returned from Purple Agent")
 
-                    # Validate response syntax with ast.parse()
-                    try:
-                        ast.parse(tests)
-                    except SyntaxError as e:
-                        logger.error(f"Invalid Python syntax in response: {e}")
-                        raise PurpleAgentError(f"Invalid Python syntax in response: {e}")
+                logger.info(f"Received response from Purple Agent ({len(tests)} characters)")
 
-                    return tests
+                try:
+                    ast.parse(tests)
+                except SyntaxError as e:
+                    logger.error(f"Invalid Python syntax in response: {e}")
+                    raise PurpleAgentError(f"Invalid Python syntax in response: {e}")
+
+                return tests
+
+            except PurpleAgentError:
+                raise
 
             except httpx.TimeoutException as e:
                 logger.warning(f"Request timed out (attempt {attempt + 1}): {e}")
@@ -132,20 +135,15 @@ class PurpleAgentMessenger:
                     await asyncio.sleep(delay)
                 continue
 
-            except httpx.HTTPStatusError as e:
-                logger.warning(f"HTTP error (attempt {attempt + 1}): {e}")
+            except Exception as e:
+                logger.warning(f"Request failed (attempt {attempt + 1}): {e}")
                 last_error = e
                 if attempt < self.max_retries - 1:
-                    delay = 2**attempt  # Exponential backoff: 1, 2, 4 seconds
+                    delay = 2**attempt
                     logger.info(f"Retrying in {delay} seconds...")
                     await asyncio.sleep(delay)
                 continue
 
-            except (httpx.HTTPError, KeyError) as e:
-                logger.error(f"Request failed: {e}")
-                raise PurpleAgentError(f"Request failed: {e}")
-
-        # All retries exhausted
         error_msg = f"Failed after {self.max_retries} attempts"
         if last_error:
             error_msg += f": {last_error}"

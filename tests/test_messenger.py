@@ -3,15 +3,14 @@
 Tests A2A protocol communication via a2a-sdk, retry logic, and response validation.
 """
 
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
-
-from a2a.types import TaskState
+from a2a.types import TaskState, TextPart
 
 from green.messenger import PurpleAgentError, PurpleAgentMessenger
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -21,7 +20,7 @@ from green.messenger import PurpleAgentError, PurpleAgentMessenger
 def make_completed_task(text: str) -> MagicMock:
     """Create a mock completed Task with text in the first artifact."""
     mock_part = MagicMock()
-    mock_part.root.text = text
+    mock_part.root = TextPart(text=text)  # real TextPart for isinstance checks
 
     mock_artifact = MagicMock()
     mock_artifact.parts = [mock_part]
@@ -32,10 +31,10 @@ def make_completed_task(text: str) -> MagicMock:
     return mock_task
 
 
-def make_send_message(*events):
+def make_send_message(*events: Any):
     """Return an async generator function that yields the given events."""
 
-    async def _send(message, **kwargs):
+    async def _send(message: Any, **kwargs: Any) -> Any:
         for event in events:
             yield event
 
@@ -221,7 +220,7 @@ async def test_messenger_retries_on_timeout(
 
     call_count = 0
 
-    async def send_with_timeout(message, **kwargs):
+    async def send_with_timeout(message: Any, **kwargs: Any) -> Any:
         nonlocal call_count
         call_count += 1
         if call_count < 3:
@@ -251,9 +250,10 @@ async def test_messenger_raises_after_exhausted_retries(
 ) -> None:
     """PurpleAgentError is raised after all retry attempts fail."""
 
-    async def always_timeout(message, **kwargs):
+    async def always_timeout(message: Any, **kwargs: Any) -> Any:
+        for _ in range(0):  # makes this an async generator without unreachable code
+            yield None
         raise httpx.TimeoutException("timed out")
-        yield  # make it an async generator
 
     mock_a2a_client.send_message = always_timeout
 
@@ -270,7 +270,7 @@ async def test_messenger_raises_after_exhausted_retries(
 
 @pytest.mark.asyncio
 async def test_messenger_logs_send_interactions(
-    messenger: PurpleAgentMessenger, mock_a2a_client: MagicMock, caplog
+    messenger: PurpleAgentMessenger, mock_a2a_client: MagicMock, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Sending and receiving are logged for observability."""
     import logging
