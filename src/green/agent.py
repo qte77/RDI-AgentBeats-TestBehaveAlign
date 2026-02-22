@@ -372,7 +372,7 @@ def run_mutation_testing(
     """
     # Gracefully handle mutmut unavailability
     try:
-        import mutmut as _mutmut_check  # noqa: F401
+        import mutmut  # noqa: F401  # pyright: ignore[reportUnusedImport]
     except ImportError:
         return MutationResult(
             killed=0,
@@ -429,6 +429,7 @@ def run_mutation_testing(
                 survived=survived,
                 total=total,
                 mutation_score=score,
+                error=None,
             )
 
         except subprocess.TimeoutExpired:
