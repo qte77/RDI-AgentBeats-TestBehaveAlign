@@ -182,3 +182,19 @@ def create_server(scenario_file: Path, port: int = 9009) -> GreenAgentServer:
         Configured GreenAgentServer instance
     """
     return GreenAgentServer(scenario_file, port)
+
+
+def create_app() -> ASGIApp:
+    """Factory for uvicorn --factory mode.
+
+    Reads PORT and SCENARIO_FILE from environment variables.
+
+    Returns:
+        ASGI application ready to serve.
+    """
+    import os
+
+    port = int(os.environ.get("PORT", "9009"))
+    scenario_file = Path(os.environ.get("SCENARIO_FILE", "scenario.toml"))
+    server = GreenAgentServer(scenario_file, port)
+    return server.app

@@ -43,8 +43,9 @@ RUN groupadd --gid 1000 appgroup && \
 COPY --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 
-# Copy source code
+# Copy source code and config
 COPY --from=builder /app/src /app/src
+COPY scenario.toml /app/scenario.toml
 
 # Switch to non-root user
 USER appuser

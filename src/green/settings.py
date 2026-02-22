@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from typing import Literal
 
-import tomli
+import tomllib
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 
@@ -57,7 +57,7 @@ class Settings(BaseModel):
         try:
             # Read TOML config
             with open(config_path, "rb") as f:
-                config = tomli.load(f)
+                config = tomllib.load(f)
 
             # Extract config section
             if "config" not in config:
@@ -85,7 +85,7 @@ class Settings(BaseModel):
                 openai_base_url=openai_base_url,
             )
 
-        except (OSError, tomli.TOMLDecodeError) as e:
+        except (OSError, tomllib.TOMLDecodeError) as e:
             raise SettingsError(f"Failed to load config from {config_path}: {e}")
         except (ValueError, ValidationError) as e:
             raise SettingsError(f"Invalid configuration: {e}")
