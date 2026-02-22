@@ -114,7 +114,7 @@ class GreenAgentServer:
         # Create uvicorn config
         config = uvicorn.Config(
             app=self.app,
-            host="0.0.0.0",
+            host="127.0.0.1",
             port=self.port,
             log_level="info",
         )
