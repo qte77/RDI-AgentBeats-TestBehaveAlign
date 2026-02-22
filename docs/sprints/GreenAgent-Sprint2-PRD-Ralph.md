@@ -235,9 +235,9 @@ Changes to existing files:
 
 ## Dependencies
 
-Already in `pyproject.toml`:
-- `a2a-sdk[http-server]>=0.3.0` (messenger rewrite uses client-side imports)
-- `pytest-bdd>=7.0.0` (now actually used in execution)
+Already in `pyproject.toml` (bumped to latest stable):
+- `a2a-sdk[http-server]>=0.3.20` (guarantees `ClientFactory.connect()` + `create_text_message_object` APIs)
+- `pytest-bdd>=8.1.0` (now actually used in execution)
 - `starlette` (via a2a-sdk, for middleware)
 
 ---
