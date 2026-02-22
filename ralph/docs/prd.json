@@ -53,8 +53,8 @@
         "src/green/executor.py",
         "src/green/agent.py"
       ],
-      "passes": false,
-      "completed_at": null,
+      "passes": true,
+      "completed_at": "2026-02-22T17:55:00.000000+00:00",
       "content_hash": "a3124f403ceb38b7de8cddd877cb2ee7005dab2da5b984ef15bf8ebd5124adc6",
       "depends_on": [
         "STORY-014"
