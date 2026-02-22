@@ -39,9 +39,7 @@ class TestInternalFunctionSignature:
 
         fn = getattr(agent_module, "_execute_test_in_isolation")
         sig = inspect.signature(fn)
-        assert "track" in sig.parameters, (
-            "_execute_test_in_isolation must accept 'track' parameter"
-        )
+        assert "track" in sig.parameters, "_execute_test_in_isolation must accept 'track' parameter"
 
     def test_track_parameter_has_correct_annotation(self) -> None:
         """track parameter should exist in _execute_test_in_isolation."""
@@ -136,13 +134,9 @@ class TestBDDPluginLoading:
 
         commands: list[list[str]] = []
 
-        def mock_run(
-            cmd: list[str], **_kwargs: Any
-        ) -> subprocess.CompletedProcess[str]:
+        def mock_run(cmd: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
             commands.append(list(cmd))
-            return subprocess.CompletedProcess(
-                args=cmd, returncode=0, stdout="1 passed", stderr=""
-            )
+            return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="1 passed", stderr="")
 
         monkeypatch.setattr(subprocess, "run", mock_run)
 
@@ -169,13 +163,9 @@ class TestBDDPluginLoading:
 
         commands: list[list[str]] = []
 
-        def mock_run(
-            cmd: list[str], **_kwargs: Any
-        ) -> subprocess.CompletedProcess[str]:
+        def mock_run(cmd: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
             commands.append(list(cmd))
-            return subprocess.CompletedProcess(
-                args=cmd, returncode=0, stdout="1 passed", stderr=""
-            )
+            return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="1 passed", stderr="")
 
         monkeypatch.setattr(subprocess, "run", mock_run)
 
@@ -263,9 +253,7 @@ class TestNoFixmeComments:
         lines = agent_path.read_text().splitlines()
         for i, line in enumerate(lines, start=1):
             if "FIXME" in line and "track param unused" in line:
-                pytest.fail(
-                    f"FIXME comment still present at line {i}: {line.strip()}"
-                )
+                pytest.fail(f"FIXME comment still present at line {i}: {line.strip()}")
 
     def test_no_fixme_track_unused_in_agent(self) -> None:
         """No 'FIXME: track param unused' should remain in agent.py."""
