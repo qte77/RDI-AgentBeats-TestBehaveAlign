@@ -1,10 +1,11 @@
-# Python bytecode
-__pycache__/
-*.py[cod]
-
 # environment
 .venv/
 *.env
+unset_env.sh
+
+# Python bytecode
+__pycache__/
+*.py[cod]
 
 # Distribution / packaging
 build/
@@ -13,16 +14,25 @@ dist/
 
 # Testing
 .pytest_cache/
-pytest-of-vscode/
 .coverage/
 .coverage
+.hypothesis/
+pytest-of-vscode/
+
+# Sanity Checks
+.complexipy_cache/
+.ruff_cache/
+.mypy_cache/
+complexipy-snapshot.json
 
 # Logs
 *.log
 logs/
 
+# Temporary files
+.tmp/
+
 # Traces
-scalene-profiles
 profile.html
 profile.json
 
@@ -31,35 +41,64 @@ profile.json
 Thumbs.db
 
 # IDE specific files (adjust as needed)
-.idea/
 .vscode/
-.idea
-.vscode
+.idea/
 
 # mkdocs
 reference/
 site/
 
-# linting
-.ruff_cache/
-.mypy_cache/
-.complexipy_cache/
+# project specific
+data/
+datasets/
+docs/write-up/*
+!docs/write-up/en/
+!docs/write-up/template/
+results/
+test_data/
+wandb/
 
-# Platform runtime output (keep directory via .gitkeep)
-output/*.json
-output/*.log
+# npm
+node_modules/
+package-lock.json
+package.json
 
+# Frontend libraries (Pyvis uses CDN, not local lib/)
+/lib/
 
-# configs (created by Claude Code sandbox)
-.bash_profile
-.bashrc
-.gitconfig
-.gitmodules
+# Claude Code sandbox bug — bwrap creates 0-byte phantom files in working dir
+# Root cause: bwrap bind-mounts resolve paths against cwd instead of $HOME,
+#   and denyWithinAllow strips .git/ prefix from git internals.
+# Mitigation options (pick one):
+#   1. This .gitignore block (cosmetic — hides from git status)
+#   2. Disable sandbox: "sandbox": {"enabled": false} in .claude/settings.json
+#      (devcontainer already provides container-level isolation)
+#   3. PostToolUse cleanup hook in .claude/settings.json:
+#      "hooks": {"PostToolUse": [{"matcher": "Bash",
+#        "hooks": [{"type": "command", "command": "rm -f HEAD config ..."}]}]}
+# Tracking: https://github.com/anthropics/claude-code/issues/17727 (open)
+# Closed incomplete: https://github.com/anthropics/claude-code/issues/17087
+#
+# git internals (denyWithinAllow drops .git/ prefix)
+/HEAD
+/config
+/hooks
+/objects
+/refs
+# shell dotfiles (cwd instead of $HOME)
+/.bash_profile
+/.bashrc
+/.profile
+/.zprofile
+/.zshrc
+/.gitconfig
+/.gitmodules
+/.ripgreprc
+# created as empty files, not dirs — bypass trailing-slash gitignore patterns
+/.claude/agents
+/.claude/commands
+/.idea
+/.vscode
+
+# LLM
 .mcp.json
-.profile
-.ripgreprc
-.zprofile
-.zshrc
-agents
-commands
-settings.local.json
