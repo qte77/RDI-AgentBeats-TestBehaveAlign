@@ -8,7 +8,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Sample code fixtures
 # ---------------------------------------------------------------------------
@@ -227,7 +226,8 @@ class TestRunMutationTesting:
 
         from green.agent import run_mutation_testing
 
-        with patch("green.agent.subprocess.run", side_effect=subprocess.TimeoutExpired("mutmut", 600)):
+        timeout_err = subprocess.TimeoutExpired("mutmut", 600)
+        with patch("green.agent.subprocess.run", side_effect=timeout_err):
             result = run_mutation_testing(simple_test_code, simple_implementation, "tdd")
 
         assert result.mutation_score == 0.0

@@ -25,6 +25,24 @@ class Task(BaseModel):
     buggy_implementation: str = Field(..., description="Buggy implementation from buggy.py")
 
 
+class MutationResult(BaseModel):
+    """Result of mutation testing against a correct implementation.
+
+    Captures counts of killed and survived mutants, total mutants,
+    mutation score, and optional error message.
+    Immutable after creation (frozen=True).
+    """
+
+    model_config = {"frozen": True}
+
+    killed: int = Field(0, description="Number of mutants killed by tests")
+    survived: int = Field(0, description="Number of mutants that survived tests")
+    total: int = Field(0, description="Total number of mutants generated")
+    mutation_score: float = Field(0.0, description="Mutation score: killed / total")
+    error: str | None = Field(None, description="Error message if mutation testing failed")
+
+
+# FIXME: class name triggers PytestCollectionWarning (Test* pattern) — rename or add collect_ignore
 class TestExecutionResult(BaseModel):
     """Result of test execution against an implementation.
 
@@ -40,5 +58,6 @@ class TestExecutionResult(BaseModel):
     execution_time: float = Field(..., description="Execution time in seconds")
     passed: bool = Field(..., description="True if tests passed (exit code 0), False otherwise")
     failure_type: Literal["none", "assertion", "infrastructure", "timeout"] = Field(
-        "none", description="Type of failure: assertion (test logic), infrastructure (import/syntax), timeout, or none"
+        "none",
+        description="Type of failure: assertion (test logic), infrastructure (import/syntax), timeout, or none",
     )

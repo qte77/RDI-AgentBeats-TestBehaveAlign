@@ -5,13 +5,14 @@ Single executor with simple if/else mode switching (KISS principle).
 """
 
 import json
+import re
 import subprocess
 import tempfile
 import time
 from pathlib import Path
 from typing import Literal
 
-from green.models import Task, TestExecutionResult
+from green.models import MutationResult, Task, TestExecutionResult
 from green.settings import Settings
 
 
@@ -216,6 +217,7 @@ def _execute_test_in_isolation(
         )
 
 
+# FIXME: track param unused — remove when STORY-004/005 track config is revisited
 def execute_test_against_correct(
     test_code: str, correct_implementation: str, track: Literal["tdd", "bdd"]
 ) -> TestExecutionResult:
@@ -235,6 +237,7 @@ def execute_test_against_correct(
     return _execute_test_in_isolation(test_code, correct_implementation, "correct.py")
 
 
+# FIXME: track param unused — remove when STORY-004/005 track config is revisited
 def execute_test_against_buggy(
     test_code: str, buggy_implementation: str, track: Literal["tdd", "bdd"]
 ) -> TestExecutionResult:
@@ -308,3 +311,141 @@ def aggregate_fault_detection_scores(scores: list[float]) -> float:
         return 0.0
 
     return sum(scores) / len(scores)
+
+
+def _parse_mutmut_output(output: str) -> tuple[int, int, int]:
+    """Parse mutmut output to extract killed, survived, and total mutant counts.
+
+    Handles multiple output formats from mutmut versions:
+    - "X/Y mutants killed" (primary format)
+    - "Killed: X\\nSurvived: Y" (fallback format)
+
+    Args:
+        output: Combined stdout/stderr from mutmut subprocess
+
+    Returns:
+        Tuple of (killed, survived, total)
+    """
+    # Primary format: "X/Y mutants killed" or "X/Y mutant killed"
+    match = re.search(r"(\d+)/(\d+)\s+mutants?\s+killed", output)
+    if match:
+        killed = int(match.group(1))
+        total = int(match.group(2))
+        survived = total - killed
+        return killed, survived, total
+
+    # Fallback format: "Killed: X" and optionally "Survived: Y"
+    killed_match = re.search(r"[Kk]illed[:\s]+(\d+)", output)
+    survived_match = re.search(r"[Ss]urvived[:\s]+(\d+)", output)
+
+    if killed_match and survived_match:
+        killed = int(killed_match.group(1))
+        survived = int(survived_match.group(1))
+        return killed, survived, killed + survived
+
+    if killed_match:
+        killed = int(killed_match.group(1))
+        return killed, 0, killed
+
+    return 0, 0, 0
+
+
+def run_mutation_testing(
+    test_code: str, correct_implementation: str, track: Literal["tdd", "bdd"]
+) -> MutationResult:
+    """Run mutation testing on correct implementation using generated tests.
+
+    Configures mutmut to mutate correct.py, runs generated tests against each
+    mutant, counts killed vs survived mutants, and calculates mutation score.
+
+    Timeout per mutant is configured at 10 seconds via pyproject.toml.
+    Caches mutations in temp directory for reproducibility within a run.
+
+    Args:
+        test_code: Generated test code to use for mutation testing
+        correct_implementation: Correct implementation to mutate
+        track: Evaluation track ("tdd" or "bdd")
+
+    Returns:
+        MutationResult with killed, survived, total counts and mutation score.
+        Returns zero score with error message if mutmut is unavailable or fails.
+    """
+    # Gracefully handle mutmut unavailability
+    try:
+        import mutmut as _mutmut_check  # noqa: F401
+    except ImportError:
+        return MutationResult(
+            killed=0,
+            survived=0,
+            total=0,
+            mutation_score=0.0,
+            error="mutmut unavailable",
+        )
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+
+        # Write correct implementation (target for mutation)
+        (temp_path / "correct.py").write_text(correct_implementation)
+
+        # Write test code
+        (temp_path / "test_generated.py").write_text(test_code)
+
+        # Configure mutmut with 10s timeout per mutant
+        (temp_path / "pyproject.toml").write_text(
+            "[tool.mutmut]\n"
+            'paths_to_mutate = "correct.py"\n'
+            "timeout = 10\n"
+        )
+
+        try:
+            # Run mutation testing via subprocess
+            run_result = subprocess.run(
+                ["mutmut", "run", "--paths-to-mutate", "correct.py"],
+                cwd=temp_dir,
+                capture_output=True,
+                text=True,
+                timeout=600,
+            )
+
+            # Collect results summary
+            summary_result = subprocess.run(
+                ["mutmut", "results"],
+                cwd=temp_dir,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+
+            combined_output = (
+                run_result.stdout
+                + run_result.stderr
+                + summary_result.stdout
+                + summary_result.stderr
+            )
+            killed, survived, total = _parse_mutmut_output(combined_output)
+            score = killed / total if total > 0 else 0.0
+
+            return MutationResult(
+                killed=killed,
+                survived=survived,
+                total=total,
+                mutation_score=score,
+            )
+
+        except subprocess.TimeoutExpired:
+            return MutationResult(
+                killed=0,
+                survived=0,
+                total=0,
+                mutation_score=0.0,
+                error="mutation testing timed out",
+            )
+        except Exception as e:
+            return MutationResult(
+                killed=0,
+                survived=0,
+                total=0,
+                mutation_score=0.0,
+                error=str(e),
+            )
