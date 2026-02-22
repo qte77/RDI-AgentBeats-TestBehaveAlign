@@ -59,5 +59,5 @@ class TestExecutionResult(BaseModel):
     passed: bool = Field(..., description="True if tests passed (exit code 0), False otherwise")
     failure_type: Literal["none", "assertion", "infrastructure", "timeout"] = Field(
         "none",
-        description="Type of failure: assertion (test logic), infrastructure (import/syntax), timeout, or none",
+        description="Failure type: assertion, infrastructure, timeout, or none",
     )

@@ -393,9 +393,7 @@ def run_mutation_testing(
 
         # Configure mutmut with 10s timeout per mutant
         (temp_path / "pyproject.toml").write_text(
-            "[tool.mutmut]\n"
-            'paths_to_mutate = "correct.py"\n'
-            "timeout = 10\n"
+            '[tool.mutmut]\npaths_to_mutate = "correct.py"\ntimeout = 10\n'
         )
 
         try:
