@@ -186,16 +186,34 @@ def _execute_test_in_isolation(
             stdout = e.stdout.decode() if e.stdout else ""
             stderr = e.stderr.decode() if e.stderr else ""
             stderr += "\nERROR: Test execution exceeded 30-second timeout"
+            execution_time = time.time() - start_time
+            return TestExecutionResult(
+                exit_code=exit_code,
+                stdout=stdout,
+                stderr=stderr,
+                execution_time=execution_time,
+                passed=False,
+                failure_type="timeout",
+            )
 
         execution_time = time.time() - start_time
 
-        # Return binary result: PASS (0) or FAIL (non-zero)
+        # Classify failure type using pytest exit codes:
+        # 0 = passed, 1 = assertion failures, 2+ = infrastructure (collection/syntax/usage)
+        if exit_code == 0:
+            failure_type = "none"
+        elif exit_code == 1:
+            failure_type = "assertion"
+        else:
+            failure_type = "infrastructure"
+
         return TestExecutionResult(
             exit_code=exit_code,
             stdout=stdout,
             stderr=stderr,
             execution_time=execution_time,
             passed=(exit_code == 0),
+            failure_type=failure_type,
         )
         # Temp directory automatically cleaned up by context manager
 

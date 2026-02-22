@@ -39,3 +39,6 @@ class TestExecutionResult(BaseModel):
     stderr: str = Field(..., description="Standard error from test execution")
     execution_time: float = Field(..., description="Execution time in seconds")
     passed: bool = Field(..., description="True if tests passed (exit code 0), False otherwise")
+    failure_type: Literal["none", "assertion", "infrastructure", "timeout"] = Field(
+        "none", description="Type of failure: assertion (test logic), infrastructure (import/syntax), timeout, or none"
+    )

@@ -467,29 +467,34 @@ class TestBuggyResultLogging:
         assert "assert" in result.stdout.lower() or "assert" in result.stderr.lower()
 
     def test_distinguish_assertion_failures_from_infrastructure_errors(
-        self, temp_buggy_task: Path
+        self, temp_buggy_task: Path, good_test_code_detecting_bug: str
     ) -> None:
         """Distinguish assertion failures from import/syntax errors."""
         from green.agent import execute_test_against_buggy
 
         buggy_impl = (temp_buggy_task / "implementation" / "buggy.py").read_text()
 
-        # Test with syntax error (infrastructure issue)
+        # Assertion failure: valid tests that detect the bug
+        assertion_result = execute_test_against_buggy(
+            test_code=good_test_code_detecting_bug,
+            buggy_implementation=buggy_impl,
+            track="tdd",
+        )
+        assert assertion_result.passed is False
+        assert assertion_result.failure_type == "assertion"
+
+        # Infrastructure failure: syntax error in test code
         syntax_error_test = """
 def test_syntax_error():
     this is not valid python
 """
-
-        result = execute_test_against_buggy(
+        infra_result = execute_test_against_buggy(
             test_code=syntax_error_test,
             buggy_implementation=buggy_impl,
             track="tdd",
         )
-
-        # Should still capture the error
-        assert result.passed is False
-        # stderr or stdout should contain error details
-        assert result.stdout or result.stderr
+        assert infra_result.passed is False
+        assert infra_result.failure_type == "infrastructure"
 
 
 class TestBuggyIsolation:
@@ -541,3 +546,118 @@ def test_timeout():
         # Should timeout and fail
         assert result.passed is False
         assert result.execution_time <= 35  # Allow overhead
+
+
+class TestFailureClassification:
+    """Verify failure_type correctly reflects the cause of test failure."""
+
+    def test_passing_tests_report_no_failure(self, temp_tdd_task: Path) -> None:
+        """When tests pass, failure_type is 'none'."""
+        from green.agent import execute_test_against_correct
+
+        correct_impl = (temp_tdd_task / "implementation" / "correct.py").read_text()
+        test_code = """
+def test_works():
+    from correct import example_function
+    assert example_function(5) == 10
+"""
+        result = execute_test_against_correct(test_code=test_code, correct_implementation=correct_impl, track="tdd")
+        assert result.passed is True
+        assert result.failure_type == "none"
+
+    def test_assertion_failure_detected_as_assertion(self, temp_buggy_task: Path) -> None:
+        """When tests fail on assertions, failure_type is 'assertion'."""
+        from green.agent import execute_test_against_buggy
+
+        buggy_impl = (temp_buggy_task / "implementation" / "buggy.py").read_text()
+        test_code = """
+def test_detects_bug():
+    from buggy import example_function
+    assert example_function(5) == 10
+"""
+        result = execute_test_against_buggy(test_code=test_code, buggy_implementation=buggy_impl, track="tdd")
+        assert result.passed is False
+        assert result.failure_type == "assertion"
+
+    def test_syntax_error_detected_as_infrastructure(self, temp_tdd_task: Path) -> None:
+        """When test code has syntax errors, failure_type is 'infrastructure'."""
+        from green.agent import execute_test_against_correct
+
+        correct_impl = (temp_tdd_task / "implementation" / "correct.py").read_text()
+        test_code = """
+def test_broken(
+    # missing closing paren and colon
+"""
+        result = execute_test_against_correct(test_code=test_code, correct_implementation=correct_impl, track="tdd")
+        assert result.passed is False
+        assert result.failure_type == "infrastructure"
+
+    def test_import_error_detected_as_infrastructure(self, temp_tdd_task: Path) -> None:
+        """When test code imports a non-existent module, failure_type is 'infrastructure'."""
+        from green.agent import execute_test_against_correct
+
+        correct_impl = (temp_tdd_task / "implementation" / "correct.py").read_text()
+        test_code = """
+from nonexistent_module import something
+
+def test_import():
+    assert something() == 42
+"""
+        result = execute_test_against_correct(test_code=test_code, correct_implementation=correct_impl, track="tdd")
+        assert result.passed is False
+        assert result.failure_type == "infrastructure"
+
+    def test_timeout_detected_as_timeout(self, temp_tdd_task: Path) -> None:
+        """When test exceeds timeout, failure_type is 'timeout'."""
+        from green.agent import execute_test_against_correct
+
+        correct_impl = (temp_tdd_task / "implementation" / "correct.py").read_text()
+        test_code = """
+import time
+
+def test_hangs():
+    time.sleep(60)
+"""
+        result = execute_test_against_correct(test_code=test_code, correct_implementation=correct_impl, track="tdd")
+        assert result.passed is False
+        assert result.failure_type == "timeout"
+
+    def test_empty_test_file_is_infrastructure(self, temp_tdd_task: Path) -> None:
+        """An empty test file with no test functions is classified as infrastructure."""
+        from green.agent import execute_test_against_correct
+
+        correct_impl = (temp_tdd_task / "implementation" / "correct.py").read_text()
+        result = execute_test_against_correct(test_code="", correct_implementation=correct_impl, track="tdd")
+        assert result.passed is False
+        assert result.failure_type == "infrastructure"
+
+    def test_bug_missed_reports_no_failure(self, temp_buggy_task: Path) -> None:
+        """When weak tests pass against buggy code (miss the bug), failure_type is 'none'."""
+        from green.agent import execute_test_against_buggy
+
+        buggy_impl = (temp_buggy_task / "implementation" / "buggy.py").read_text()
+        test_code = """
+def test_weak():
+    from buggy import example_function
+    assert isinstance(example_function(5), int)
+"""
+        result = execute_test_against_buggy(test_code=test_code, buggy_implementation=buggy_impl, track="tdd")
+        assert result.passed is True
+        assert result.failure_type == "none"
+
+    def test_failure_output_contains_relevant_details(self, temp_buggy_task: Path) -> None:
+        """Assertion failures include the failing test name and assertion in output."""
+        from green.agent import execute_test_against_buggy
+
+        buggy_impl = (temp_buggy_task / "implementation" / "buggy.py").read_text()
+        test_code = """
+def test_detects_off_by_one():
+    from buggy import example_function
+    assert example_function(0) == 0
+"""
+        result = execute_test_against_buggy(test_code=test_code, buggy_implementation=buggy_impl, track="tdd")
+        assert result.failure_type == "assertion"
+        # pytest -v output should contain the test name
+        assert "test_detects_off_by_one" in result.stdout
+        # Should contain assertion detail
+        assert "assert" in result.stdout.lower()
