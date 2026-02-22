@@ -1,5 +1,17 @@
 """Pytest configuration and shared fixtures."""
 
+import sys
+
+# CRITICAL: Fix for Pydantic + Python 3.13 + a2a-sdk compatibility issue
+# Ensure pydantic.root_model is properly registered in sys.modules before
+# any a2a imports that create RootModel generics
+# See: https://github.com/pydantic/pydantic/issues/9390
+import pydantic.root_model
+
+# Ensure the module is accessible in sys.modules dict
+if "pydantic.root_model" not in sys.modules:
+    sys.modules["pydantic.root_model"] = pydantic.root_model
+
 from unittest.mock import MagicMock, patch
 
 import pytest
