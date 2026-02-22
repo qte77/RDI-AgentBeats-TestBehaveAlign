@@ -139,7 +139,10 @@ def load_task(task_dir: Path, track: Literal["tdd", "bdd"]) -> Task:
 
 
 def _execute_test_in_isolation(
-    test_code: str, implementation: str, implementation_filename: str
+    test_code: str,
+    implementation: str,
+    implementation_filename: str,
+    track: Literal["tdd", "bdd"] = "tdd",
 ) -> TestExecutionResult:
     """Execute tests against an implementation in isolated environment.
 
@@ -151,6 +154,7 @@ def _execute_test_in_isolation(
         test_code: Generated test code to execute
         implementation: Implementation code to test against
         implementation_filename: Name of implementation file (e.g., "correct.py" or "buggy.py")
+        track: Evaluation track ("tdd" or "bdd"); BDD loads pytest-bdd plugin
 
     Returns:
         TestExecutionResult with exit code, stdout, stderr, execution time, and pass/fail status
@@ -167,7 +171,7 @@ def _execute_test_in_isolation(
         test_file = temp_path / "test_generated.py"
         test_file.write_text(test_code)
 
-        # Block network access in test subprocess (STORY-008 AC fix)
+        # Write conftest.py: block network access for both tracks
         conftest = temp_path / "conftest.py"
         conftest.write_text(
             "import socket as _socket\n"
@@ -177,11 +181,17 @@ def _execute_test_in_isolation(
             "_socket.socket = _guard\n"
         )
 
+        # Build pytest command: BDD track explicitly loads pytest-bdd plugin
+        if track == "bdd":
+            cmd = ["pytest", str(test_file), "-v", "-p", "pytest_bdd"]
+        else:
+            cmd = ["pytest", str(test_file), "-v"]
+
         # Execute pytest with 30-second timeout
         start_time = time.time()
         try:
             result = subprocess.run(
-                ["pytest", str(test_file), "-v"],
+                cmd,
                 cwd=temp_dir,
                 capture_output=True,
                 text=True,
@@ -227,7 +237,6 @@ def _execute_test_in_isolation(
         )
 
 
-# FIXME: track param unused — remove when STORY-004/005 track config is revisited
 def execute_test_against_correct(
     test_code: str, correct_implementation: str, track: Literal["tdd", "bdd"]
 ) -> TestExecutionResult:
@@ -244,10 +253,9 @@ def execute_test_against_correct(
     Returns:
         TestExecutionResult with exit code, stdout, stderr, execution time, and pass/fail status
     """
-    return _execute_test_in_isolation(test_code, correct_implementation, "correct.py")
+    return _execute_test_in_isolation(test_code, correct_implementation, "correct.py", track)
 
 
-# FIXME: track param unused — remove when STORY-004/005 track config is revisited
 def execute_test_against_buggy(
     test_code: str, buggy_implementation: str, track: Literal["tdd", "bdd"]
 ) -> TestExecutionResult:
@@ -270,7 +278,7 @@ def execute_test_against_buggy(
         TestExecutionResult with exit code, stdout, stderr, execution time, and pass/fail status.
         Assertion failures in stdout/stderr indicate bug detection.
     """
-    return _execute_test_in_isolation(test_code, buggy_implementation, "buggy.py")
+    return _execute_test_in_isolation(test_code, buggy_implementation, "buggy.py", track)
 
 
 def calculate_fault_detection_score(
