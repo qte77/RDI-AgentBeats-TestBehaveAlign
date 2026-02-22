@@ -18,7 +18,7 @@
         "Handle evalplus import errors gracefully",
         "Log download progress and success",
         "Use `evalplus.data.get_human_eval_plus()` API",
-        "Map HumanEval IDs to task names (e.g., 0 \u2192 task_001_has_close_elements)",
+        "Map HumanEval IDs to task names (e.g., 0 → task_001_has_close_elements)",
         "Create directory structure with pathlib"
       ],
       "files": [
@@ -137,8 +137,8 @@
       "description": "Serve A2A HTTP endpoints so that AgentBeats client can orchestrate evaluation. - Implement A2A server with AgentCard and endpoints",
       "acceptance": [
         "Serve on port 9009",
-        "GET /.well-known/agent-card.json \u2192 agent metadata",
-        "POST /evaluate \u2192 start evaluation, return results",
+        "GET /.well-known/agent-card.json → agent metadata",
+        "POST /evaluate → start evaluation, return results",
         "Health check endpoint: GET /health",
         "Graceful shutdown on SIGTERM",
         "Log all incoming requests with request IDs",
@@ -207,8 +207,8 @@
         "src/green/agent.py",
         "src/green/models.py"
       ],
-      "passes": true,
-      "completed_at": "2026-02-01T11:05:25Z",
+      "passes": false,
+      "completed_at": null,
       "content_hash": "6a6845a81110fbbc4e247f6bf8acb2f226d7f610ca0565acfece1559631f2a2c",
       "depends_on": [
         "STORY-005",
@@ -234,9 +234,9 @@
         "src/green/agent.py",
         "src/green/models.py"
       ],
-      "passes": true,
-      "completed_at": "2026-02-01T11:14:40Z",
-      "content_hash": "e0834c1f6e8a2f7d3c4b5a9e1f2d3c4b5a6e7f8a9b0c1d2e3f4a5b6c7d8e9f0",
+      "passes": false,
+      "completed_at": null,
+      "content_hash": "a127bcb80eda244f99094be987d21f180f047a8a4fa0e7625e30b65246703503",
       "depends_on": [
         "STORY-008"
       ]
@@ -256,7 +256,7 @@
         "src/green/models.py"
       ],
       "passes": true,
-      "completed_at": "2026-02-22T00:00:00Z",
+      "completed_at": "2026-02-22T13:16:42Z",
       "content_hash": "365feb444af76b20eb67b588af9437b4b393be5e02278c93eac96f03e9b9e272",
       "depends_on": [
         "STORY-008",
@@ -296,7 +296,7 @@
       "title": "Implement composite score calculation",
       "description": "Calculate weighted composite score to rank test quality. - Implement composite score calculation",
       "acceptance": [
-        "MVP formula: `score = (0.60 \u00d7 mutation_score) + (0.40 \u00d7 fault_detection_rate)`",
+        "MVP formula: `score = (0.60 × mutation_score) + (0.40 × fault_detection_rate)`",
         "Validate component scores in [0.0, 1.0]",
         "Round final score to 2 decimal places",
         "Include all component scores in output",
