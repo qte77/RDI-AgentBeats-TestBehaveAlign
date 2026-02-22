@@ -16,7 +16,7 @@ from typing import Literal
 
 import httpx
 from a2a.client import Client, ClientConfig, ClientFactory, create_text_message_object
-from a2a.types import TaskState, TextPart
+from a2a.types import Artifact, Message, TaskState, TextPart
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +65,52 @@ class PurpleAgentMessenger:
         """Clean up all cached clients."""
         self._clients.clear()
 
+    @staticmethod
+    def _extract_text_from_artifacts(artifacts: list[Artifact]) -> str | None:
+        """Extract first text content from task artifacts."""
+        for artifact in artifacts:
+            for part in artifact.parts:
+                if isinstance(part.root, TextPart):
+                    return part.root.text
+        return None
+
+    @staticmethod
+    def _validate_syntax(code: str) -> None:
+        """Validate Python syntax, raising PurpleAgentError on failure."""
+        try:
+            ast.parse(code)
+        except SyntaxError as e:
+            logger.error(f"Invalid Python syntax in response: {e}")
+            raise PurpleAgentError(f"Invalid Python syntax in response: {e}")
+
+    async def _request_tests(self, message: Message) -> str:
+        """Send a single test generation request and return validated code."""
+        client = await self._get_client(self.base_url)
+        tests: str | None = None
+
+        async for event in client.send_message(message):
+            if not isinstance(event, tuple):
+                continue
+            task, _ = event
+            if task.status.state == TaskState.completed and task.artifacts:
+                tests = self._extract_text_from_artifacts(task.artifacts)
+                break
+
+        if tests is None:
+            raise PurpleAgentError("No tests returned from Purple Agent")
+
+        logger.info(f"Received response from Purple Agent ({len(tests)} characters)")
+        self._validate_syntax(tests)
+        return tests
+
+    async def _retry_with_backoff(self, attempt: int, error: Exception) -> None:
+        """Log warning and sleep with exponential backoff between retries."""
+        logger.warning(f"Request failed (attempt {attempt + 1}): {error}")
+        if attempt < self.max_retries - 1:
+            delay = 2**attempt
+            logger.info(f"Retrying in {delay} seconds...")
+            await asyncio.sleep(delay)
+
     async def generate_tests(
         self,
         spec: str,
@@ -93,56 +139,14 @@ class PurpleAgentMessenger:
                 logger.info(
                     f"Sending request to Purple Agent (attempt {attempt + 1}/{self.max_retries})"
                 )
-
-                client = await self._get_client(self.base_url)
-                tests: str | None = None
-
-                async for event in client.send_message(message):
-                    if isinstance(event, tuple):
-                        task, _ = event
-                        if task.status.state == TaskState.completed:
-                            if task.artifacts:
-                                for artifact in task.artifacts:
-                                    for part in artifact.parts:
-                                        if isinstance(part.root, TextPart):
-                                            tests = part.root.text
-                                            break
-                                    if tests is not None:
-                                        break
-
-                if tests is None:
-                    raise PurpleAgentError("No tests returned from Purple Agent")
-
-                logger.info(f"Received response from Purple Agent ({len(tests)} characters)")
-
-                try:
-                    ast.parse(tests)
-                except SyntaxError as e:
-                    logger.error(f"Invalid Python syntax in response: {e}")
-                    raise PurpleAgentError(f"Invalid Python syntax in response: {e}")
-
-                return tests
+                return await self._request_tests(message)
 
             except PurpleAgentError:
                 raise
 
-            except httpx.TimeoutException as e:
-                logger.warning(f"Request timed out (attempt {attempt + 1}): {e}")
+            except (httpx.TimeoutException, Exception) as e:
                 last_error = e
-                if attempt < self.max_retries - 1:
-                    delay = 2**attempt  # Exponential backoff: 1, 2, 4 seconds
-                    logger.info(f"Retrying in {delay} seconds...")
-                    await asyncio.sleep(delay)
-                continue
-
-            except Exception as e:
-                logger.warning(f"Request failed (attempt {attempt + 1}): {e}")
-                last_error = e
-                if attempt < self.max_retries - 1:
-                    delay = 2**attempt
-                    logger.info(f"Retrying in {delay} seconds...")
-                    await asyncio.sleep(delay)
-                continue
+                await self._retry_with_backoff(attempt, e)
 
         error_msg = f"Failed after {self.max_retries} attempts"
         if last_error:
