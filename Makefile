@@ -171,7 +171,6 @@ ralph_reorganize:  ## Archive current PRD and start new iteration. Usage: make r
 
 
 help:  ## Displays this message with available recipes
-	# TODO add stackoverflow source
 	echo "Usage: make [recipe]"
 	echo "Recipes:"
 	awk '/^[a-zA-Z0-9_-]+:.*?##/ {
