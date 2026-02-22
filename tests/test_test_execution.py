@@ -661,11 +661,11 @@ class TestTempDirectoryCleanup:
         from green.agent import execute_test_against_correct
 
         created_paths: list[str] = []
-        OriginalTempDir = tempfile.TemporaryDirectory
+        original_temp_dir = tempfile.TemporaryDirectory
 
         class TrackingTempDir:
             def __init__(self) -> None:
-                self._real: tempfile.TemporaryDirectory[str] = OriginalTempDir()
+                self._real: tempfile.TemporaryDirectory[str] = original_temp_dir()
 
             def __enter__(self) -> str:
                 path = self._real.__enter__()
