@@ -34,6 +34,8 @@ dev = [
     "pytest-cov>=7.0.0",
     "ruff>=0.8.0",
     "pyright>=1.1.0",
+    "hypothesis>=6.151.4",
+    "inline-snapshot>=0.31.0",
 ]
 scripts = [
     "evalplus>=0.2.0",  # Only for scripts/download_evalplus.py
