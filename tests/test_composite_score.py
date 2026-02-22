@@ -239,9 +239,7 @@ class TestCompositeScoreProperties:
         )
         @settings(max_examples=100)
         def check(mutation: float, fault: float) -> None:
-            result = calculate_composite_score(
-                mutation_score=mutation, fault_detection_rate=fault
-            )
+            result = calculate_composite_score(mutation_score=mutation, fault_detection_rate=fault)
             assert 0.0 <= result.score <= 1.0
 
         check()
@@ -284,12 +282,8 @@ class TestCompositeScoreProperties:
         def check(low: float, high: float, mutation: float) -> None:
             if low > high:
                 low, high = high, low
-            r_low = calculate_composite_score(
-                mutation_score=mutation, fault_detection_rate=low
-            )
-            r_high = calculate_composite_score(
-                mutation_score=mutation, fault_detection_rate=high
-            )
+            r_low = calculate_composite_score(mutation_score=mutation, fault_detection_rate=low)
+            r_high = calculate_composite_score(mutation_score=mutation, fault_detection_rate=high)
             assert r_low.score <= r_high.score
 
         check()
