@@ -160,9 +160,7 @@ class TestDownloadEvalPlus:
         task_numbers = sorted([int(d.name.split("_")[1]) for d in task_dirs])
         assert task_numbers == [1, 2, 3, 4, 5], "Tasks should be numbered 001-005"
 
-    def test_import_error_is_raised_when_evalplus_missing(
-        self, temp_data_dir: Path
-    ) -> None:
+    def test_import_error_is_raised_when_evalplus_missing(self, temp_data_dir: Path) -> None:
         """download_tasks raises ImportError when evalplus is not installed."""
         from unittest.mock import patch
 

@@ -165,9 +165,7 @@ class TestGenerateVariants:
         assert "old" in BUG_PATTERNS[task_id], f"Pattern for {task_id} should have 'old' key"
         assert "new" in BUG_PATTERNS[task_id], f"Pattern for {task_id} should have 'new' key"
 
-    def test_generate_buggy_raises_value_error_when_pattern_not_found(
-        self, tmp_path: Path
-    ) -> None:
+    def test_generate_buggy_raises_value_error_when_pattern_not_found(self, tmp_path: Path) -> None:
         """generate_buggy raises ValueError when bug pattern is absent from correct.py."""
         from green.data_prep.generate_variants import generate_buggy
 
