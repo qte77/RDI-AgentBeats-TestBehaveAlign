@@ -1,6 +1,6 @@
-"""Tests for Purple Agent messenger communication.
+"""Tests for Purple Agent messenger - a2a-sdk ClientFactory migration.
 
-Tests A2A protocol communication, retry logic, timeout handling, and validation.
+Tests A2A protocol communication via a2a-sdk, retry logic, and response validation.
 """
 
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -8,246 +8,284 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
+from a2a.types import TaskState
+
 from green.messenger import PurpleAgentError, PurpleAgentMessenger
 
 
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def make_completed_task(text: str) -> MagicMock:
+    """Create a mock completed Task with text in the first artifact."""
+    mock_part = MagicMock()
+    mock_part.root.text = text
+
+    mock_artifact = MagicMock()
+    mock_artifact.parts = [mock_part]
+
+    mock_task = MagicMock()
+    mock_task.status.state = TaskState.completed
+    mock_task.artifacts = [mock_artifact]
+    return mock_task
+
+
+def make_send_message(*events):
+    """Return an async generator function that yields the given events."""
+
+    async def _send(message, **kwargs):
+        for event in events:
+            yield event
+
+    return _send
+
+
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
+
+
 @pytest.fixture
-def purple_messenger() -> PurpleAgentMessenger:
-    """Create messenger instance for testing."""
+def messenger() -> PurpleAgentMessenger:
     return PurpleAgentMessenger(base_url="http://localhost:9010")
 
 
-@pytest.mark.asyncio
-async def test_discover_agent_card_success(purple_messenger: PurpleAgentMessenger) -> None:
-    """Test successful agent card discovery from Purple Agent."""
-    mock_response = MagicMock(spec=httpx.Response)
-    mock_response.status_code = 200
-    mock_response.json.return_value = {
-        "name": "Purple Agent",
-        "description": "Test generator",
-        "url": "http://localhost:9010",
-        "version": "0.0.0",
-    }
+@pytest.fixture
+def mock_a2a_client():
+    """A mock a2a Client."""
+    return MagicMock()
 
-    mock_client = AsyncMock()
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    mock_client.get = AsyncMock(return_value=mock_response)
 
-    with patch("httpx.AsyncClient", return_value=mock_client):
-        agent_card = await purple_messenger.discover_agent_card()
-
-    assert agent_card["name"] == "Purple Agent"
-    assert agent_card["url"] == "http://localhost:9010"
+# ---------------------------------------------------------------------------
+# Happy path
+# ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_discover_agent_card_failure(purple_messenger: PurpleAgentMessenger) -> None:
-    """Test agent card discovery failure handling."""
-    mock_client = AsyncMock()
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    mock_client.get = AsyncMock(side_effect=httpx.ConnectError("Connection failed"))
-
-    with patch("httpx.AsyncClient", return_value=mock_client):
-        with pytest.raises(PurpleAgentError, match="Failed to discover Purple Agent"):
-            await purple_messenger.discover_agent_card()
-
-
-@pytest.mark.asyncio
-async def test_generate_tests_success(purple_messenger: PurpleAgentMessenger) -> None:
-    """Test successful test generation request."""
-    spec = "def add(a: int, b: int) -> int:\n    '''Add two numbers.'''"
-    expected_tests = "def test_add():\n    assert add(1, 2) == 3"
-
-    mock_response = MagicMock(spec=httpx.Response)
-    mock_response.status_code = 200
-    mock_response.json.return_value = {"tests": expected_tests}
-
-    mock_client = AsyncMock()
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    mock_client.post = AsyncMock(return_value=mock_response)
-
-    with patch("httpx.AsyncClient", return_value=mock_client):
-        tests = await purple_messenger.generate_tests(spec=spec, track="tdd")
-
-    assert tests == expected_tests
-    assert "def test_add" in tests
-
-
-@pytest.mark.asyncio
-async def test_generate_tests_invalid_syntax_raises_error(
-    purple_messenger: PurpleAgentMessenger,
+async def test_messenger_returns_completed_task_text(
+    messenger: PurpleAgentMessenger, mock_a2a_client: MagicMock
 ) -> None:
-    """Test that invalid Python syntax in response raises error."""
-    spec = "def add(a: int, b: int) -> int:\n    pass"
-    invalid_tests = "def test_add(\n    assert invalid syntax"
+    """generate_tests extracts text from the completed task artifact."""
+    expected = "def test_add():\n    assert add(1, 2) == 3"
+    task = make_completed_task(expected)
+    mock_a2a_client.send_message = make_send_message((task, None))
 
-    mock_response = MagicMock(spec=httpx.Response)
-    mock_response.status_code = 200
-    mock_response.json.return_value = {"tests": invalid_tests}
+    with patch(
+        "green.messenger.ClientFactory.connect",
+        new=AsyncMock(return_value=mock_a2a_client),
+    ):
+        result = await messenger.generate_tests(spec="def add(a, b): pass", track="tdd")
 
-    mock_client = AsyncMock()
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    mock_client.post = AsyncMock(return_value=mock_response)
-
-    with patch("httpx.AsyncClient", return_value=mock_client):
-        with pytest.raises(PurpleAgentError, match="Invalid Python syntax in response"):
-            await purple_messenger.generate_tests(spec=spec, track="tdd")
+    assert result == expected
 
 
 @pytest.mark.asyncio
-async def test_generate_tests_timeout(purple_messenger: PurpleAgentMessenger) -> None:
-    """Test timeout handling (30 seconds per request)."""
-    spec = "def add(a: int, b: int) -> int:\n    pass"
+async def test_messenger_uses_client_factory_connect(
+    messenger: PurpleAgentMessenger, mock_a2a_client: MagicMock
+) -> None:
+    """generate_tests uses ClientFactory.connect instead of raw httpx."""
+    task = make_completed_task("def test_ok(): pass")
+    mock_a2a_client.send_message = make_send_message((task, None))
 
-    mock_client = AsyncMock()
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    mock_client.post = AsyncMock(side_effect=httpx.TimeoutException("Request timed out"))
+    with patch(
+        "green.messenger.ClientFactory.connect",
+        new=AsyncMock(return_value=mock_a2a_client),
+    ) as mock_connect:
+        await messenger.generate_tests(spec="def f(): pass", track="tdd")
 
-    with patch("httpx.AsyncClient", return_value=mock_client):
-        with pytest.raises(PurpleAgentError, match="Request timed out"):
-            await purple_messenger.generate_tests(spec=spec, track="tdd")
+    mock_connect.assert_awaited_once()
+    # First positional argument must be the agent URL
+    assert mock_connect.call_args.args[0] == "http://localhost:9010"
 
 
 @pytest.mark.asyncio
-async def test_generate_tests_retry_on_failure(purple_messenger: PurpleAgentMessenger) -> None:
-    """Test retry logic with exponential backoff (up to 3 attempts)."""
-    spec = "def add(a: int, b: int) -> int:\n    pass"
+async def test_messenger_passes_httpx_client_to_config(
+    messenger: PurpleAgentMessenger, mock_a2a_client: MagicMock
+) -> None:
+    """ClientConfig is created with httpx.AsyncClient for transport (not for protocol)."""
+    task = make_completed_task("def test_ok(): pass")
+    mock_a2a_client.send_message = make_send_message((task, None))
 
-    # First two calls fail, third succeeds
-    mock_response_success = MagicMock(spec=httpx.Response)
-    mock_response_success.status_code = 200
-    mock_response_success.json.return_value = {"tests": "def test_add(): pass"}
+    from a2a.client import ClientConfig
 
-    mock_client = AsyncMock()
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    mock_client.post = AsyncMock(
-        side_effect=[
-            httpx.HTTPStatusError(
-                "Server error", request=MagicMock(), response=MagicMock(status_code=500)
-            ),
-            httpx.HTTPStatusError(
-                "Server error", request=MagicMock(), response=MagicMock(status_code=500)
-            ),
-            mock_response_success,
-        ]
-    )
+    with patch(
+        "green.messenger.ClientFactory.connect",
+        new=AsyncMock(return_value=mock_a2a_client),
+    ) as mock_connect:
+        await messenger.generate_tests(spec="def f(): pass", track="tdd")
+
+    _, kwargs = mock_connect.call_args[0], mock_connect.call_args.kwargs
+    client_config = kwargs.get("client_config") or mock_connect.call_args.args[1]
+    assert isinstance(client_config, ClientConfig)
+    assert client_config.httpx_client is not None
+
+
+# ---------------------------------------------------------------------------
+# Client caching
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_messenger_caches_client_per_url(
+    messenger: PurpleAgentMessenger, mock_a2a_client: MagicMock
+) -> None:
+    """ClientFactory.connect is called only once per URL across multiple requests."""
+    task = make_completed_task("def test_ok(): pass")
+    mock_a2a_client.send_message = make_send_message((task, None))
+
+    with patch(
+        "green.messenger.ClientFactory.connect",
+        new=AsyncMock(return_value=mock_a2a_client),
+    ) as mock_connect:
+        await messenger.generate_tests(spec="spec1", track="tdd")
+        await messenger.generate_tests(spec="spec2", track="bdd")
+
+    assert mock_connect.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_messenger_close_clears_cached_clients(
+    messenger: PurpleAgentMessenger, mock_a2a_client: MagicMock
+) -> None:
+    """close() purges the client cache so the next request reconnects."""
+    task = make_completed_task("def test_ok(): pass")
+    mock_a2a_client.send_message = make_send_message((task, None))
+
+    with patch(
+        "green.messenger.ClientFactory.connect",
+        new=AsyncMock(return_value=mock_a2a_client),
+    ) as mock_connect:
+        await messenger.generate_tests(spec="spec1", track="tdd")
+        await messenger.close()
+        # Need to rebuild the side_effect since generator is exhausted
+        mock_a2a_client.send_message = make_send_message((task, None))
+        await messenger.generate_tests(spec="spec2", track="tdd")
+
+    assert mock_connect.await_count == 2
+
+
+def test_messenger_has_close_method(messenger: PurpleAgentMessenger) -> None:
+    """Messenger exposes a close() method for resource cleanup."""
+    import inspect
+
+    assert callable(getattr(messenger, "close", None))
+    assert inspect.iscoroutinefunction(messenger.close)
+
+
+# ---------------------------------------------------------------------------
+# Discovery removed
+# ---------------------------------------------------------------------------
+
+
+def test_messenger_has_no_discover_agent_card_method(
+    messenger: PurpleAgentMessenger,
+) -> None:
+    """discover_agent_card() is removed; SDK handles discovery internally."""
+    assert not hasattr(messenger, "discover_agent_card")
+
+
+# ---------------------------------------------------------------------------
+# Response validation
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_messenger_raises_on_invalid_syntax(
+    messenger: PurpleAgentMessenger, mock_a2a_client: MagicMock
+) -> None:
+    """PurpleAgentError is raised when the response contains invalid Python."""
+    task = make_completed_task("def test_broken(\n    assert invalid")
+    mock_a2a_client.send_message = make_send_message((task, None))
+
+    with patch(
+        "green.messenger.ClientFactory.connect",
+        new=AsyncMock(return_value=mock_a2a_client),
+    ):
+        with pytest.raises(PurpleAgentError, match="Invalid Python syntax"):
+            await messenger.generate_tests(spec="def f(): pass", track="tdd")
+
+
+# ---------------------------------------------------------------------------
+# Retry logic
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_messenger_retries_on_timeout(
+    messenger: PurpleAgentMessenger, mock_a2a_client: MagicMock
+) -> None:
+    """generate_tests retries with exponential backoff on TimeoutException."""
+    task = make_completed_task("def test_ok(): pass")
+
+    call_count = 0
+
+    async def send_with_timeout(message, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count < 3:
+            raise httpx.TimeoutException("timed out")
+        yield (task, None)
+
+    mock_a2a_client.send_message = send_with_timeout
 
     with (
-        patch("httpx.AsyncClient", return_value=mock_client),
+        patch(
+            "green.messenger.ClientFactory.connect",
+            new=AsyncMock(return_value=mock_a2a_client),
+        ),
         patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
     ):
-        tests = await purple_messenger.generate_tests(spec=spec, track="tdd")
+        result = await messenger.generate_tests(spec="def f(): pass", track="tdd")
 
-    assert tests == "def test_add(): pass"
-    # Verify exponential backoff: 1s, 2s delays
-    assert mock_sleep.call_count == 2
-    assert mock_sleep.call_args_list[0][0][0] == 1  # First retry: 1 second
-    assert mock_sleep.call_args_list[1][0][0] == 2  # Second retry: 2 seconds
+    assert result == "def test_ok(): pass"
+    assert mock_sleep.await_count == 2
+    assert mock_sleep.call_args_list[0].args[0] == 1  # 2^0
+    assert mock_sleep.call_args_list[1].args[0] == 2  # 2^1
 
 
 @pytest.mark.asyncio
-async def test_generate_tests_retry_exhausted(purple_messenger: PurpleAgentMessenger) -> None:
-    """Test that after 3 failed attempts, error is raised."""
-    spec = "def add(a: int, b: int) -> int:\n    pass"
+async def test_messenger_raises_after_exhausted_retries(
+    messenger: PurpleAgentMessenger, mock_a2a_client: MagicMock
+) -> None:
+    """PurpleAgentError is raised after all retry attempts fail."""
 
-    mock_client = AsyncMock()
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    mock_client.post = AsyncMock(
-        side_effect=httpx.HTTPStatusError(
-            "Server error", request=MagicMock(), response=MagicMock(status_code=500)
-        )
-    )
+    async def always_timeout(message, **kwargs):
+        raise httpx.TimeoutException("timed out")
+        yield  # make it an async generator
+
+    mock_a2a_client.send_message = always_timeout
 
     with (
-        patch("httpx.AsyncClient", return_value=mock_client),
+        patch(
+            "green.messenger.ClientFactory.connect",
+            new=AsyncMock(return_value=mock_a2a_client),
+        ),
         patch("asyncio.sleep", new_callable=AsyncMock),
     ):
         with pytest.raises(PurpleAgentError, match="Failed after 3 attempts"):
-            await purple_messenger.generate_tests(spec=spec, track="tdd")
+            await messenger.generate_tests(spec="def f(): pass", track="tdd")
 
 
 @pytest.mark.asyncio
-async def test_generate_tests_sends_correct_request(
-    purple_messenger: PurpleAgentMessenger,
+async def test_messenger_logs_send_interactions(
+    messenger: PurpleAgentMessenger, mock_a2a_client: MagicMock, caplog
 ) -> None:
-    """Test that request contains spec and track in correct format."""
-    spec = "def add(a: int, b: int) -> int:\n    '''Add two numbers.'''"
-    track = "tdd"
-
-    mock_response = MagicMock(spec=httpx.Response)
-    mock_response.status_code = 200
-    mock_response.json.return_value = {"tests": "def test_add(): pass"}
-
-    mock_client = AsyncMock()
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    mock_client.post = AsyncMock(return_value=mock_response)
-
-    with patch("httpx.AsyncClient", return_value=mock_client):
-        await purple_messenger.generate_tests(spec=spec, track=track)
-
-        # Verify POST was called with correct URL and payload
-        mock_client.post.assert_called_once()
-        call_args = mock_client.post.call_args
-        assert call_args[0][0] == "http://localhost:9010/generate-tests"
-        assert call_args[1]["json"] == {"spec": spec, "track": track}
-
-
-@pytest.mark.asyncio
-async def test_generate_tests_bdd_track(purple_messenger: PurpleAgentMessenger) -> None:
-    """Test that BDD track is correctly sent in request."""
-    spec = """Feature: Add numbers
-    Scenario: Add two positive numbers
-        Given I have numbers 1 and 2
-        When I add them
-        Then I get 3
-    """
-    track = "bdd"
-
-    mock_response = MagicMock(spec=httpx.Response)
-    mock_response.status_code = 200
-    mock_response.json.return_value = {"tests": "def test_bdd(): pass"}
-
-    mock_client = AsyncMock()
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    mock_client.post = AsyncMock(return_value=mock_response)
-
-    with patch("httpx.AsyncClient", return_value=mock_client):
-        await purple_messenger.generate_tests(spec=spec, track=track)
-
-        call_args = mock_client.post.call_args
-        assert call_args[1]["json"]["track"] == "bdd"
-
-
-@pytest.mark.asyncio
-async def test_logging_interactions(purple_messenger: PurpleAgentMessenger, caplog) -> None:
-    """Test that all A2A interactions are logged for debugging."""
+    """Sending and receiving are logged for observability."""
     import logging
 
     caplog.set_level(logging.INFO, logger="green.messenger")
 
-    spec = "def add(a: int, b: int) -> int:\n    pass"
+    task = make_completed_task("def test_ok(): pass")
+    mock_a2a_client.send_message = make_send_message((task, None))
 
-    mock_response = MagicMock(spec=httpx.Response)
-    mock_response.status_code = 200
-    mock_response.json.return_value = {"tests": "def test_add(): pass"}
+    with patch(
+        "green.messenger.ClientFactory.connect",
+        new=AsyncMock(return_value=mock_a2a_client),
+    ):
+        await messenger.generate_tests(spec="def f(): pass", track="tdd")
 
-    mock_client = AsyncMock()
-    mock_client.__aenter__.return_value = mock_client
-    mock_client.__aexit__.return_value = None
-    mock_client.post = AsyncMock(return_value=mock_response)
-
-    with patch("httpx.AsyncClient", return_value=mock_client):
-        await purple_messenger.generate_tests(spec=spec, track="tdd")
-
-    # Verify logging occurred
-    assert any("Sending request to Purple Agent" in record.message for record in caplog.records)
-    assert any("Received response from Purple Agent" in record.message for record in caplog.records)
+    messages = [r.message for r in caplog.records]
+    assert any("Sending request" in m for m in messages)
+    assert any("Received response" in m for m in messages)
