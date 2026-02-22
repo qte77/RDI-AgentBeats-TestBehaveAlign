@@ -661,3 +661,117 @@ def test_detects_off_by_one():
         assert "test_detects_off_by_one" in result.stdout
         # Should contain assertion detail
         assert "assert" in result.stdout.lower()
+
+
+class TestFailureClassificationSnapshots:
+    """Snapshot-based tests for failure_type using inline-snapshot."""
+
+    def test_passing_snapshot(self, temp_tdd_task: Path) -> None:
+        """Snapshot: passing tests produce failure_type 'none'."""
+        from inline_snapshot import snapshot
+
+        from green.agent import execute_test_against_correct
+
+        correct_impl = (temp_tdd_task / "implementation" / "correct.py").read_text()
+        test_code = """
+def test_works():
+    from correct import example_function
+    assert example_function(5) == 10
+"""
+        result = execute_test_against_correct(test_code=test_code, correct_implementation=correct_impl, track="tdd")
+        assert result.failure_type == snapshot("none")
+        assert result.passed == snapshot(True)
+
+    def test_assertion_failure_snapshot(self, temp_buggy_task: Path) -> None:
+        """Snapshot: assertion failures against buggy code."""
+        from inline_snapshot import snapshot
+
+        from green.agent import execute_test_against_buggy
+
+        buggy_impl = (temp_buggy_task / "implementation" / "buggy.py").read_text()
+        test_code = """
+def test_detects_bug():
+    from buggy import example_function
+    assert example_function(5) == 10
+"""
+        result = execute_test_against_buggy(test_code=test_code, buggy_implementation=buggy_impl, track="tdd")
+        assert result.failure_type == snapshot("assertion")
+        assert result.exit_code == snapshot(1)
+
+    def test_syntax_error_snapshot(self, temp_tdd_task: Path) -> None:
+        """Snapshot: syntax errors produce infrastructure failure."""
+        from inline_snapshot import snapshot
+
+        from green.agent import execute_test_against_correct
+
+        correct_impl = (temp_tdd_task / "implementation" / "correct.py").read_text()
+        test_code = "def test_broken(\n"
+        result = execute_test_against_correct(test_code=test_code, correct_implementation=correct_impl, track="tdd")
+        assert result.failure_type == snapshot("infrastructure")
+        assert result.passed == snapshot(False)
+
+    def test_import_error_snapshot(self, temp_tdd_task: Path) -> None:
+        """Snapshot: import errors produce infrastructure failure."""
+        from inline_snapshot import snapshot
+
+        from green.agent import execute_test_against_correct
+
+        correct_impl = (temp_tdd_task / "implementation" / "correct.py").read_text()
+        test_code = """
+from nonexistent import foo
+
+def test_foo():
+    assert foo() == 1
+"""
+        result = execute_test_against_correct(test_code=test_code, correct_implementation=correct_impl, track="tdd")
+        assert result.failure_type == snapshot("infrastructure")
+
+
+class TestFailureClassificationProperties:
+    """Property-based tests: executor never crashes on arbitrary input."""
+
+    def test_arbitrary_test_code_never_crashes(self, temp_tdd_task: Path) -> None:
+        """Any string as test code produces a valid TestExecutionResult."""
+        from hypothesis import given, settings
+        from hypothesis import strategies as st
+
+        from green.agent import execute_test_against_correct
+
+        correct_impl = (temp_tdd_task / "implementation" / "correct.py").read_text()
+
+        @given(test_code=st.text(max_size=200))
+        @settings(max_examples=10, deadline=60000)
+        def check(test_code: str) -> None:
+            result = execute_test_against_correct(
+                test_code=test_code, correct_implementation=correct_impl, track="tdd"
+            )
+            assert result.failure_type in {"none", "assertion", "infrastructure", "timeout"}
+            assert result.passed == (result.exit_code == 0)
+            assert result.execution_time >= 0
+
+        check()
+
+    def test_arbitrary_implementation_never_crashes(self, temp_tdd_task: Path) -> None:
+        """Any string as implementation produces a valid TestExecutionResult."""
+        from hypothesis import given, settings
+        from hypothesis import strategies as st
+
+        from green.agent import execute_test_against_correct
+
+        test_code = """
+def test_simple():
+    from correct import example_function
+    assert example_function(5) == 10
+"""
+
+        @given(impl=st.text(max_size=200))
+        @settings(max_examples=10, deadline=60000)
+        def check(impl: str) -> None:
+            result = execute_test_against_correct(
+                test_code=test_code, correct_implementation=impl, track="tdd"
+            )
+            assert result.failure_type in {"none", "assertion", "infrastructure", "timeout"}
+            assert result.passed == (result.exit_code == 0)
+            assert result.execution_time >= 0
+
+        check()
