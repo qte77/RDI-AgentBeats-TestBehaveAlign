@@ -230,7 +230,7 @@ class TestExecuteMethod:
     async def test_execute_enqueues_failed_status_on_error(
         self, temp_scenario_file: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """execute() should enqueue a failed status event when an error occurs."""
+        """execute() should enqueue a failed status event when a top-level error occurs."""
         from a2a.types import TaskState, TaskStatusUpdateEvent
 
         from green.executor import GreenAgentExecutor
@@ -241,20 +241,35 @@ class TestExecuteMethod:
         event_queue = _make_event_queue()
 
         mock_messenger = MagicMock()
-        mock_messenger.generate_tests = AsyncMock(side_effect=RuntimeError("boom"))
         mock_messenger.close = AsyncMock()
 
+        # Trigger a top-level error (outside per-task loop) via generate_agentbeats_results
         with (
             patch("green.executor.PurpleAgentMessenger", return_value=mock_messenger),
             patch("green.executor.load_task", return_value=_make_mock_task()),
+            patch(
+                "green.executor.execute_test_against_correct",
+                return_value=_make_test_execution_result(True),
+            ),
+            patch(
+                "green.executor.execute_test_against_buggy",
+                return_value=_make_test_execution_result(False),
+            ),
+            patch(
+                "green.executor.run_mutation_testing",
+                return_value=_make_mutation_result(),
+            ),
+            patch(
+                "green.executor.generate_agentbeats_results",
+                side_effect=RuntimeError("results generation failed"),
+            ),
         ):
+            mock_messenger.generate_tests = AsyncMock(return_value="def test_add(): pass")
             await executor.execute(context, event_queue)
 
         calls = event_queue.enqueue_event.call_args_list
         status_events = [
-            call.args[0]
-            for call in calls
-            if isinstance(call.args[0], TaskStatusUpdateEvent)
+            call.args[0] for call in calls if isinstance(call.args[0], TaskStatusUpdateEvent)
         ]
         assert len(status_events) >= 1
         assert any(e.status.state == TaskState.failed for e in status_events)
@@ -346,9 +361,7 @@ class TestExecuteMethod:
         # Find the artifact event
         calls = event_queue.enqueue_event.call_args_list
         artifact_events = [
-            call.args[0]
-            for call in calls
-            if isinstance(call.args[0], TaskArtifactUpdateEvent)
+            call.args[0] for call in calls if isinstance(call.args[0], TaskArtifactUpdateEvent)
         ]
         assert len(artifact_events) >= 1
 
@@ -383,9 +396,7 @@ class TestExecuteMethod:
 
         with (
             patch("green.executor.PurpleAgentMessenger", return_value=mock_messenger),
-            patch(
-                "green.executor.load_task", return_value=_make_mock_task()
-            ) as mock_load,
+            patch("green.executor.load_task", return_value=_make_mock_task()) as mock_load,
             patch(
                 "green.executor.execute_test_against_correct",
                 return_value=_make_test_execution_result(True),
