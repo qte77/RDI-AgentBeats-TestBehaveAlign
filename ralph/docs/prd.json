@@ -1,0 +1,178 @@
+{
+  "project": "RDI-AgentBeats-TheBulletproofProtocol",
+  "description": "Legal Domain Agent Benchmark for AgentBeats competition - IRS Section 41 R&D tax credit evaluator. Purple agent (reference implementation) generates test narratives, Green agent (benchmark) evaluates them for IRS compliance.",
+  "scope": "Phase 1 complete (STORY-001 to STORY-021): Core agents, A2A protocol, ground truth dataset, Docker deployment, AgentBeats registration. Phase 2 in progress (STORY-022 to STORY-043): Output alignment (P0), Arena mode, Hybrid evaluation, Benchmark rigor.",
+  "source": "docs/PRD.md",
+  "generated": "2026-02-22 16:53:27",
+  "stories": [
+    {
+      "id": "STORY-014",
+      "title": "Migrate messenger from raw httpx to a2a-sdk ClientFactory",
+      "description": "Replace raw httpx messenger with a2a-sdk `ClientFactory.connect()` pattern, aligning with the reference implementation (`common/messenger.py` in MAS-GraphJudge). This gives implicit AgentCard discovery, client caching per URL, and proper TaskState lifecycle tracking. - Migrate messenger from raw httpx to a2a-sdk ClientFactory",
+      "acceptance": [
+        "Replace `httpx.AsyncClient` with `ClientFactory.connect(url)` from a2a-sdk",
+        "Use `create_text_message_object()` for message construction",
+        "Iterate `send_message()` events and check `TaskState.completed`",
+        "Implement client caching per agent URL (avoid reconnect per request)",
+        "Implement `close()` method to clean up cached clients",
+        "Remove explicit `discover_agent_card()` method (SDK handles discovery internally)",
+        "Preserve retry logic with exponential backoff",
+        "Preserve response validation with `ast.parse()`",
+        "Preserve 30-second timeout configuration",
+        "Import `Client`, `ClientConfig`, `ClientFactory`, `create_text_message_object` from `a2a.client`",
+        "Import `TaskState` from `a2a.types`",
+        "Use `httpx.AsyncClient` only for transport config passed to `ClientConfig` (not for protocol)",
+        "Reference: `MAS-GraphJudge/src/common/messenger.py:62-77`"
+      ],
+      "files": [
+        "src/green/messenger.py"
+      ],
+      "passes": true,
+      "completed_at": "2026-02-22T17:41:40.351356+00:00",
+      "content_hash": "63eba0f0ee16022238f34bf9d198abd0246d9501bee6be37d1455fffb1f45321",
+      "depends_on": []
+    },
+    {
+      "id": "STORY-015",
+      "title": "Implement executor with trace tracking and latency measurement",
+      "description": "Implement the executor's `execute()` method (currently an empty `pass`), aligned with the reference implementation which uses UUID trace IDs, multi-round coordination, and latency measurement. - Implement executor with trace tracking and latency measurement",
+      "acceptance": [
+        "`execute()` receives A2A message and delegates to agent evaluation",
+        "Generate `trace_id` via `uuid.uuid4()` per evaluation",
+        "Parse incoming message to extract evaluation parameters",
+        "Call agent's evaluation pipeline (load task, request tests, execute, score)",
+        "Record start/end time and compute latency per operation",
+        "Return results as A2A response artifact",
+        "Handle errors and return appropriate A2A error responses",
+        "Call `await messenger.close()` in finally block",
+        "Use existing `GreenAgent` methods for the evaluation pipeline",
+        "Follow a2a-sdk `AgentExecutor` interface",
+        "Reference: `MAS-GraphJudge/src/green/executor.py:38-104`"
+      ],
+      "files": [
+        "src/green/executor.py",
+        "src/green/agent.py"
+      ],
+      "passes": true,
+      "completed_at": "2026-02-22T17:55:00.000000+00:00",
+      "content_hash": "a3124f403ceb38b7de8cddd877cb2ee7005dab2da5b984ef15bf8ebd5124adc6",
+      "depends_on": [
+        "STORY-014"
+      ]
+    },
+    {
+      "id": "STORY-016",
+      "title": "Add request ID logging middleware to server",
+      "description": "Add ASGI middleware to log all incoming HTTP requests with unique request IDs for observability. - Add request ID logging middleware to server",
+      "acceptance": [
+        "Generate UUID request ID for each incoming HTTP request",
+        "Add middleware to FastAPI/ASGI application in server.py",
+        "Log method, path, status code, and duration per request",
+        "Include request ID in all log entries for that request",
+        "Return request ID in response header (`X-Request-ID`)",
+        "Implement as Starlette/FastAPI middleware",
+        "Use `uuid4()` for request ID generation",
+        "Use structured logging (existing logger)"
+      ],
+      "files": [
+        "src/green/server.py"
+      ],
+      "passes": true,
+      "completed_at": "2026-02-22",
+      "content_hash": "098336cba0823b931297cc9b2481305ecb05b0ce4d825d03dd4a8e4af075afe7",
+      "depends_on": []
+    },
+    {
+      "id": "STORY-017",
+      "title": "Implement BDD track dispatch in test execution",
+      "description": "Implement actual pytest-bdd dispatch when `track=\"bdd\"` so BDD evaluation uses BDD-specific test execution. - Implement BDD track dispatch in test execution",
+      "acceptance": [
+        "When `track=\"tdd\"`, invoke `pytest` (current behavior)",
+        "When `track=\"bdd\"`, invoke `pytest` with `pytest-bdd` plugin loaded",
+        "Remove FIXME comments from `agent.py:230` and `agent.py:250`",
+        "BDD test execution writes step definition files alongside test file",
+        "Both tracks capture same result structure (exit code, stdout, stderr, time)",
+        "Modify `_execute_test_in_isolation()` to accept and use `track` parameter",
+        "BDD execution should write a conftest.py with step definitions if needed",
+        "Reuse existing subprocess/timeout infrastructure"
+      ],
+      "files": [
+        "src/green/agent.py"
+      ],
+      "passes": true,
+      "completed_at": "2026-02-22T18:12:16Z",
+      "content_hash": "409489cf4adf6c604477dcddfea5e4bee6d4bf4624c84a117224d8fa19b94d7d",
+      "depends_on": []
+    },
+    {
+      "id": "STORY-018",
+      "title": "Update Sprint 1 AC text to match implementation decisions",
+      "description": "Update Sprint 1 PRD acceptance criteria to reflect intentional implementation decisions confirmed by cross-repo analysis. GraphJudge also does not implement AST parsing for spec loading or gherkin parsers \u2014 confirming these are not expected patterns. - Update Sprint 1 AC text to match implementation decisions",
+      "acceptance": [
+        "Document AC divergences in Sprint 2 PRD cross-repo alignment table",
+        "STORY-005: read_text() for spec.py loading confirmed correct (AST in data_prep only; GraphJudge has no spec.py concept)",
+        "STORY-005: read_text() for spec.feature confirmed correct (GraphJudge has no .feature files either)",
+        "STORY-006: A2ARESTFastAPIApplication confirmed correct (SDK class renamed from A2AStarletteApplication)",
+        "No code changes, Sprint 1 PRD archived as-is"
+      ],
+      "files": [
+        "docs/sprints/GreenAgent-Sprint2-PRD-Ralph.md"
+      ],
+      "passes": true,
+      "completed_at": "2026-02-22T17:00:00Z",
+      "content_hash": "c84f19d909a1c3e911c46ecceb5486b1c3d2ca43330bdff71b92822546e96d98",
+      "depends_on": []
+    },
+    {
+      "id": "STORY-019",
+      "title": "Add data prep edge case and error path tests",
+      "description": "Add missing test coverage for data preparation edge cases and error paths. - Add data prep edge case and error path tests",
+      "acceptance": [
+        "Test evalplus ImportError handling (`download_evalplus.py:22-27`)",
+        "Test log message content (not just record count) for download progress",
+        "Test BUG_PATTERNS coverage for tasks 002-005 (not just task_001)",
+        "Test ValueError path when buggy code equals correct code (`generate_variants.py:87-91`)",
+        "Use `unittest.mock` to simulate ImportError for evalplus",
+        "Use `caplog` with message content assertions",
+        "Parametrize BUG_PATTERNS tests across all 5 tasks"
+      ],
+      "files": [
+        "tests/test_download_evalplus.py",
+        "tests/test_generate_variants.py"
+      ],
+      "passes": true,
+      "completed_at": "2026-02-22T18:20:00Z",
+      "content_hash": "86d6fd189c4f4d49e07c256584e9a2c8cf6226366b0c648c493e3f141f2120f9",
+      "depends_on": [
+        "STORY-018"
+      ]
+    },
+    {
+      "id": "STORY-020",
+      "title": "Add server and execution isolation tests",
+      "description": "Add missing test coverage for server infrastructure and test execution isolation. - Add server and execution isolation tests",
+      "acceptance": [
+        "Test that uvicorn is configured as the ASGI server",
+        "Test network isolation guard (socket patching in conftest.py blocks network calls)",
+        "Test temp directory cleanup (verify directory is deleted after execution)",
+        "Test per-mutant timeout configuration is written correctly to pyproject.toml",
+        "Mock subprocess to verify network-blocking conftest is written",
+        "Use `tmp_path` and verify directory absence after context manager exits",
+        "Parse written pyproject.toml to verify timeout value"
+      ],
+      "files": [
+        "tests/test_server.py",
+        "tests/test_test_execution.py",
+        "tests/test_mutation_testing.py"
+      ],
+      "passes": true,
+      "completed_at": "2026-02-22",
+      "content_hash": "ae77bf6412eb70a121f439e307286b09c41c2320c9259a21fedf6272c26ecd75",
+      "depends_on": [
+        "STORY-015",
+        "STORY-016",
+        "STORY-017"
+      ]
+    }
+  ]
+}

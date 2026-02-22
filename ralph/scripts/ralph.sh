@@ -82,7 +82,7 @@ get_next_story() {
     local completed=$(jq -r '[.stories[] | select(.passes == true) | .id] | @json' "$PRD_JSON")
 
     # Find first incomplete story where all depends_on are satisfied
-    jq -r --argjson done "$completed" '
+    jq -r --argjson "done" "$completed" '
       .stories[]
       | select(.passes == false)
       | select((.depends_on // []) - $done | length == 0)
@@ -178,7 +178,7 @@ detect_already_complete() {
     local agent_output=$(tail -n +$((start_line + 1)) "$LOG_FILE" 2>/dev/null)
 
     # Patterns that indicate pre-completion
-    if echo "$agent_output" | grep -qi "is functionally complete\|already complete\|work is already done\|no further implementation.*required\|already implemented"; then
+    if echo "$agent_output" | grep -qi "is functionally complete\|already complete\|work is already done\|no further implementation.*required\|already implemented\|already present\|was already\|has been successfully completed\|implementation.*already.*present"; then
         return 0
     fi
 
@@ -262,6 +262,60 @@ check_tdd_commits() {
     return 0
 }
 
+# Check for pre-existing TDD commits when no new commits detected
+# Looks back in git history for story_id with TDD markers
+check_preexisting_commits() {
+    local story_id="$1"
+
+    log_info "No new commits detected, checking for pre-existing TDD implementation..."
+
+    # Look back 20 commits for this story's TDD markers
+    local story_commits=$(git log --oneline -20 --grep="$story_id")
+
+    if [ -z "$story_commits" ]; then
+        log_warn "No commits found for $story_id in recent history"
+        return 1
+    fi
+
+    log_info "Found commits mentioning $story_id:"
+    echo "$story_commits"
+
+    # Check for TDD markers in story commits
+    if ! echo "$story_commits" | grep -q "\[RED\]"; then
+        log_warn "No [RED] marker found for $story_id"
+        return 1
+    fi
+
+    if ! echo "$story_commits" | grep -q "\[GREEN\]"; then
+        log_warn "No [GREEN] marker found for $story_id"
+        return 1
+    fi
+
+    # Get story files from prd.json
+    local story_files=$(jq -r --arg id "$story_id" '.stories[] | select(.id == $id) | .files[]' "$PRD_JSON" 2>/dev/null)
+
+    if [ -n "$story_files" ]; then
+        log_info "Checking if story files exist..."
+        local missing_files=0
+        while IFS= read -r file; do
+            if [ ! -f "$file" ]; then
+                log_warn "Expected file not found: $file"
+                missing_files=$((missing_files + 1))
+            else
+                log_info "✓ Found: $file"
+            fi
+        done <<< "$story_files"
+
+        if [ $missing_files -gt 0 ]; then
+            log_warn "$missing_files expected file(s) missing"
+            return 1
+        fi
+    fi
+
+    log_info "Pre-existing TDD commits verified for $story_id"
+    return 0
+}
+
 # Main loop
 main() {
     log_info "Starting Ralph Loop"
@@ -300,6 +354,20 @@ main() {
         # Execute story and capture return code (use || true to prevent set -e from exiting on non-zero)
         local exec_status=0
         execute_story "$story_id" "$details" || exec_status=$?
+
+        # Enhanced completion detection: check for pre-existing implementation
+        if [ $exec_status -eq 0 ]; then
+            local commits_after=$(git rev-list --count HEAD)
+            local new_commits=$((commits_after - commits_before))
+
+            if [ $new_commits -eq 0 ]; then
+                log_info "No new commits detected during execution"
+                if check_preexisting_commits "$story_id"; then
+                    log_info "Treating as already complete (pre-existing TDD commits found)"
+                    exec_status=2
+                fi
+            fi
+        fi
 
         if [ $exec_status -eq 2 ]; then
             # Story already complete - skip TDD verification, just run quality checks

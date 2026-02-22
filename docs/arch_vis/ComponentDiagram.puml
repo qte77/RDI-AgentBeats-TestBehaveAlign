@@ -1,0 +1,62 @@
+@startuml ComponentDiagram
+title TestBehaveAlign Component Architecture\n//<color:gray>(How is it composed?)</color>//
+
+skinparam component {
+    BackgroundColor<<Agent>> #E8D5F2
+    BackgroundColor<<Core>> #C8E6C9
+    BackgroundColor<<Eval>> #B3E5FC
+    BackgroundColor<<External>> #FFECB3
+    BackgroundColor<<Data>> #FFE0B2
+}
+
+package "Data" <<Data>> #FFE0B2 {
+    component [spec.py / spec.feature] as Spec
+    component [correct.py] as Correct
+    component [buggy.py] as Buggy
+}
+
+component [LLM API\n(OpenAI)] as LLMApi <<External>> #FFECB3
+
+package "Purple Agent (Port 9010)" <<Agent>> #E8D5F2 {
+    component [server.py] as PurpleServer
+    component [executor.py] as PurpleExecutor
+    component [agent.py] as PurpleAgent
+    component [settings.py] as PurpleSettings
+    PurpleServer -down-> PurpleExecutor
+    PurpleExecutor -down-> PurpleAgent
+    PurpleAgent -right-> LLMApi : generate tests
+}
+
+package "Green Agent (Port 9009)" <<Core>> #C8E6C9 {
+    component [server.py] as GreenServer
+    component [RequestIDMiddleware] as Middleware
+    component [executor.py] as Executor
+    component [agent.py] as GreenAgent
+    component [messenger.py] as Messenger
+    component [settings.py] as GreenSettings
+
+    package "Evaluation" <<Eval>> #B3E5FC {
+        component [pytest / pytest-bdd] as Pytest
+        component [mutmut] as Mutmut
+    }
+
+    package "data_prep/" <<Data>> #FFE0B2 {
+        component [download_evalplus.py] as Download
+        component [generate_variants.py] as Variants
+        component [generate_bdd.py] as BDD
+    }
+
+    GreenServer -down-> Middleware
+    GreenServer -down-> Executor
+    Executor -down-> GreenAgent
+    GreenAgent -down-> Messenger
+    GreenAgent -down-> Pytest
+    GreenAgent -down-> Mutmut
+}
+
+GreenAgent -left-> Spec : load
+Messenger -right-> PurpleServer : A2A POST\n/v1/message:send
+GreenAgent -left-> Correct : run tests
+GreenAgent -left-> Buggy : run tests
+
+@enduml

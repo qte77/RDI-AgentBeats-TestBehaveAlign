@@ -1,79 +1,65 @@
 # Ralph Loop Learnings
 
-## Patterns to Apply
+<!-- markdownlint-disable MD024 MD025 -->
 
-1. **Integration stories**: Add explicit wiring story after every 3-5 component stories
-2. **Behavioral acceptance**: Test behavior ("detector returns score>20"), not interface ("returns dict")
-3. **Dependency fields**: Add `depends_on`, `blocks`, `type` to prd.json schema
-4. **Checkpoints**: Pause loop after component groups for smoke test
-5. **Integration tests**: Verify wiring ("if detector returns X, evaluator outputs Y")
+## 1. Story Completion
 
-## Checklist (Before Marking Story Complete)
+- [ ] AC tests behavior, not shape ("returns score>20" not "returns dict")
+- [ ] Integration story exists after every 3-5 component stories
+- [ ] No orphaned modules — all components wired
+- [ ] Wiring verified behaviorally: if A returns X, B produces expected Y
+- [ ] Smoke test passes (E2E flow works end-to-end)
+- [ ] `generate_prd_json.py --dry-run` AC/files counts match expectations
 
-- [ ] Acceptance criteria test behavior, not just shape
-- [ ] Integration story exists if this completes a component group
-- [ ] No orphaned modules (all components used)
-- [ ] Smoke test passes (E2E flow works)
+## 2. PRD Parser
 
-## Schema Enhancement (TODO)
+`generate_prd_json.py` silently drops content not matching its regex.
 
-```json
-{
-  "id": "STORY-010",
-  "type": "integration",
-  "depends_on": ["STORY-006", "STORY-007", "STORY-008", "STORY-009"],
-  "blocks": ["STORY-015"]
-}
-```
-
-Adding `depends_on`/`blocks` to prd.json prevents this category of errors at the source.
-
----
-
-## Learning 2: Platform Integration Gap
-
-**Root Cause**: Implementation works in isolation but doesn't match target platform's integration contract.
-
-**Pattern**: All unit tests pass, local testing works, but deployment/submission fails due to interface mismatch.
-
-### Why This Happens
-
-1. **Assumed equivalence**: "It works locally" ≠ "It works on platform"
-2. **Late template analysis**: Reference implementations studied after building, not before
-3. **Wrong test target**: Tested against own assumptions, not platform tooling
-
-### Patterns to Apply
-
-1. **Template-first development**: Study platform's reference implementation BEFORE coding
-2. **Contract extraction**: Document exact interface requirements (CLI args, ports, endpoints, response format)
-3. **Platform integration story**: Add explicit story to verify against platform's actual tooling
-4. **Shadow testing**: Run platform's orchestration tools locally before submission
-
-### Checklist (Platform Integration)
-
-- [ ] Reference/template implementation analyzed before design
-- [ ] CLI interface matches platform expectations exactly
-- [ ] Default configuration (ports, timeouts) matches platform defaults
-- [ ] Entry point pattern matches platform's invocation method
-- [ ] Health/discovery endpoints match platform's probes
-- [ ] Tested with platform's actual orchestration tooling (not just local equivalents)
-
-### PRD Enhancement
-
-For any platform-targeted project, add to PRD:
-
-```markdown
-**Platform Compatibility**:
-- [ ] CLI interface: [exact args expected by platform]
-- [ ] Entry point: [exact invocation pattern]
-- [ ] Defaults: [ports, timeouts matching platform]
-- [ ] Endpoints: [discovery/health endpoints platform probes]
-- [ ] Validated against: [platform's tooling/scripts]
-```
-
-### Anti-Pattern
+| Constraint | Fix |
+| --- | --- |
+| One `#####` heading per story | Split combined headings into separate ones |
+| Top-level `- [ ]` only | Flatten indented sub-items to individual checkboxes |
+| Sub-feature needs own `**Files**:` | Add per-sub-feature, remove parent's |
+| Parser copies parent description | Fix manually in prd.json + rehash |
 
 ```text
-BAD:  "Works on my machine" → Ship
-GOOD: "Works with platform tooling" → Ship
+BAD:  - [ ] Module with:        ← parser sees 1 item
+        - helper_a()
+        - helper_b()
+GOOD: - [ ] Module created       ← parser sees 3 items
+      - [ ] helper_a()
+      - [ ] helper_b()
 ```
+
+## 3. Platform Integration
+
+- [ ] Study reference implementation BEFORE coding
+- [ ] Extract exact interface contract (CLI args, ports, response format)
+- [ ] Default configuration (ports, timeouts) matches platform defaults
+- [ ] Entry point pattern matches platform's invocation method
+- [ ] Add explicit integration story to verify against platform tooling
+- [ ] Test with platform's orchestration tools, not local equivalents
+
+## 4. Worktree Merge
+
+```bash
+# After Ralph completes (from main repo)
+git merge --squash ralph/<branch>
+git commit -m "feat(sprintN): implement stories via Ralph"
+git worktree remove ../<worktree-dir>
+git branch -d ralph/<branch>
+```
+
+- [ ] Squash merge — collapses RED/GREEN/REFACTOR noise into one revertable commit
+- [ ] Don't edit `prd.json` story files on source branch while Ralph runs
+- [ ] After `-X ours` conflict resolution, `git rm` files added exclusively by the other branch
+
+## 5. Story Scope
+
+PRD `files` lists often miss pre-existing tests asserting on renamed symbols or changed output.
+
+- [x] Grep full test tree for renamed/changed symbols before implementation; add consuming files to story scope
+- [x] Exit codes 137/143 (SIGTERM/OOM) = inconclusive, not PASS — retry or flag
+- [ ] After each story, run `uv run pytest --inline-snapshot=review` to surface stale snapshots
+- [ ] Flag source files with tests in multiple directories — consolidate to prevent oversight
+- [ ] Post-story: run tests importing changed modules specifically, not just full suite

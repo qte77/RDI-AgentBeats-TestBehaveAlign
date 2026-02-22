@@ -1,0 +1,35 @@
+@startuml TestBehaveAlign-Architecture
+title TestBehaveAlign - Benchmark Flow\n//<color:gray>(How does evaluation work?)</color>//
+
+skinparam component {
+    BackgroundColor<<Assessee>> #E8D5F2
+    BackgroundColor<<Assessor>> #C8E6C9
+    BackgroundColor<<Data>> #FFE0B2
+}
+
+component "Purple Agent\n(Test Generator)" as Purple <<Assessee>>
+component "Green Agent\n(Evaluator)" as Green <<Assessor>>
+database "data/tasks/\ntdd/ | bdd/" as Data <<Data>>
+
+Green -left-> Data : load spec +\nimplementations
+Green -right-> Purple : A2A POST /v1/message:send\n"tdd:spec" or "bdd:spec"
+Purple -left-> Green : TaskState.completed\ntest code artifact
+Green -down-> Green : evaluate\n(pytest | pytest-bdd + mutmut)
+
+note bottom of Purple
+  **Test Generation**
+  --
+  TDD: pytest from docstring
+  BDD: pytest-bdd from Gherkin
+end note
+
+note bottom of Green
+  **Evaluation Metrics**
+  --
+  1. Pass on correct.py
+  2. Fail on buggy.py
+  3. Mutation score (mutmut)
+  4. Composite = 0.60*mutation + 0.40*fault
+end note
+
+@enduml

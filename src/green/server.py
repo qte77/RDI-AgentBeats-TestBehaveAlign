@@ -1,0 +1,200 @@
+"""A2A server for Green Agent.
+
+HTTP server with A2A protocol endpoints for test quality evaluation.
+Serves AgentCard, evaluation endpoints, and health checks.
+"""
+
+import asyncio
+import logging
+import signal
+import time
+from pathlib import Path
+from uuid import uuid4
+
+import uvicorn
+from a2a.server.apps.rest.fastapi_app import A2ARESTFastAPIApplication
+from a2a.server.request_handlers.default_request_handler import DefaultRequestHandler
+from a2a.server.tasks.inmemory_task_store import InMemoryTaskStore
+from a2a.types import AgentCapabilities, AgentCard, AgentSkill
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.requests import Request
+from starlette.responses import Response
+from starlette.types import ASGIApp
+
+from green.executor import GreenAgentExecutor
+
+logger = logging.getLogger(__name__)
+
+
+class RequestIDMiddleware(BaseHTTPMiddleware):
+    """ASGI middleware that attaches a UUID4 request ID to each request."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        super().__init__(app)
+
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        """Process request: generate ID, log details, attach header."""
+        request_id = str(uuid4())
+        start = time.monotonic()
+
+        logger.info(
+            f"request_id={request_id} method={request.method} path={request.url.path} started"
+        )
+
+        response = await call_next(request)
+
+        duration_ms = (time.monotonic() - start) * 1000
+        logger.info(
+            f"request_id={request_id} method={request.method} path={request.url.path}"
+            f" status={response.status_code} duration_ms={duration_ms:.1f}"
+        )
+
+        response.headers["X-Request-ID"] = request_id
+        return response
+
+
+class GreenAgentServer:
+    """Green Agent A2A server.
+
+    Serves HTTP endpoints for test quality evaluation using A2A protocol.
+    """
+
+    def __init__(self, scenario_file: Path, port: int = 9009) -> None:
+        """Initialize server with configuration.
+
+        Args:
+            scenario_file: Path to scenario.toml configuration
+            port: Port to serve on (default: 9009)
+        """
+        self.port = port
+        self.scenario_file = scenario_file
+        self.executor = GreenAgentExecutor(scenario_file)
+        self._uvicorn_server: uvicorn.Server | None = None
+
+        # Create AgentCard
+        agent_card = AgentCard(
+            name="Green Agent",
+            description="Test quality evaluator for AI coding agents",
+            url="http://localhost:9009",
+            version="0.0.0",
+            capabilities=AgentCapabilities(),
+            skills=[
+                AgentSkill(
+                    id="evaluate-tests",
+                    name="Evaluate Test Quality",
+                    description=(
+                        "Evaluate generated tests using fault detection and mutation testing"
+                    ),
+                    tags=["testing", "evaluation", "quality"],
+                )
+            ],
+            default_input_modes=["text"],
+            default_output_modes=["text"],
+        )
+
+        # Create task store and request handler
+        task_store = InMemoryTaskStore()
+        request_handler = DefaultRequestHandler(
+            agent_executor=self.executor,
+            task_store=task_store,
+        )
+
+        # Create A2A application and build FastAPI app
+        a2a_app = A2ARESTFastAPIApplication(
+            agent_card=agent_card,
+            http_handler=request_handler,
+        )
+        self.app = a2a_app.build()
+
+        # Add request ID logging middleware
+        self.app.add_middleware(RequestIDMiddleware)
+
+        # Store agent_card on both server and app for easy access
+        self.agent_card = agent_card
+        self.app.agent_card = agent_card  # type: ignore
+
+        # Add health endpoint to FastAPI app
+        self._add_health_endpoint()
+
+        # Setup graceful shutdown
+        self._shutdown_event = asyncio.Event()
+        self._setup_signal_handlers()
+
+    def _add_health_endpoint(self) -> None:
+        """Add health check endpoint to FastAPI app."""
+
+        # Add health endpoint to the FastAPI app
+        @self.app.get("/health")
+        async def health() -> dict[str, str]:
+            """Health check endpoint."""
+            return {"status": "ok"}
+
+        # Explicitly mark as used to satisfy type checker
+        _ = health
+
+    def _setup_signal_handlers(self) -> None:
+        """Setup signal handlers for graceful shutdown."""
+
+        def handle_shutdown(signum: int, _frame: object) -> None:  # noqa: ARG001
+            """Handle shutdown signals."""
+            logger.info(f"Received signal {signum}, initiating graceful shutdown")
+            self._shutdown_event.set()
+
+        signal.signal(signal.SIGTERM, handle_shutdown)
+        signal.signal(signal.SIGINT, handle_shutdown)
+
+    async def start(self) -> None:
+        """Start the A2A server."""
+        logger.info(f"Starting Green Agent server on port {self.port}")
+
+        # Create uvicorn config
+        config = uvicorn.Config(
+            app=self.app,
+            host="127.0.0.1",
+            port=self.port,
+            log_level="info",
+        )
+        self._uvicorn_server = uvicorn.Server(config)
+
+        # Run server until shutdown signal
+        await self._uvicorn_server.serve()
+
+    async def shutdown(self) -> None:
+        """Gracefully shutdown the server."""
+        logger.info("Shutting down Green Agent server")
+        if self._uvicorn_server:
+            self._uvicorn_server.should_exit = True
+        self._shutdown_event.set()
+
+    async def stop(self) -> None:
+        """Stop the server (alias for shutdown)."""
+        await self.shutdown()
+
+
+def create_server(scenario_file: Path, port: int = 9009) -> GreenAgentServer:
+    """Create Green Agent A2A server.
+
+    Args:
+        scenario_file: Path to scenario.toml configuration
+        port: Port to serve on (default: 9009)
+
+    Returns:
+        Configured GreenAgentServer instance
+    """
+    return GreenAgentServer(scenario_file, port)
+
+
+def create_app() -> ASGIApp:
+    """Factory for uvicorn --factory mode.
+
+    Reads PORT and SCENARIO_FILE from environment variables.
+
+    Returns:
+        ASGI application ready to serve.
+    """
+    import os
+
+    port = int(os.environ.get("PORT", "9009"))
+    scenario_file = Path(os.environ.get("SCENARIO_FILE", "scenario.toml"))
+    server = GreenAgentServer(scenario_file, port)
+    return server.app
