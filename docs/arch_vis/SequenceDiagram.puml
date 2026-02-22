@@ -9,35 +9,49 @@ skinparam participant {
 
 participant "agentbeats-client" as Client <<Client>>
 participant "Green Agent\n(9009)" as Green <<Green>>
+participant "RequestIDMiddleware" as MW <<Green>>
 participant "Purple Agent\n(9010)" as Purple <<Purple>>
 
 == Startup: Discovery ==
 
 Client -> Green : GET /.well-known/agent-card.json
-Green --> Client : agent metadata
+Green --> Client : AgentCard metadata
 
-Client -> Purple : GET /.well-known/agent-card.json
-Purple --> Client : agent metadata
+Green -> Purple : ClientFactory.connect(url)\nGET /.well-known/agent-card.json
+Purple --> Green : AgentCard metadata (cached)
 
-== Evaluation Loop ==
+== Evaluation ==
 
-Client -> Green : POST /evaluate
+Client -> Green : POST /v1/message:send\n{track, task_count}
+MW -> MW : Generate X-Request-ID (UUID)
 activate Green
 
 loop for each task
-    Green -> Green : load spec.py
-    Green -> Purple : POST /generate-tests\n{spec, track}
+    Green -> Green : load spec.py / spec.feature
+
+    Green -> Purple : POST /v1/message:send\ncreate_text_message_object("track:spec")
     activate Purple
+    note right of Green : 3 retries, exponential backoff\n(1s, 2s, 4s)
     Purple -> Purple : LLM generates tests
-    Purple --> Green : {tests}
+    Purple --> Green : TaskState.completed\ntest code artifact (TextPart)
     deactivate Purple
 
-    Green -> Green : run tests vs correct.py
-    Green -> Green : run tests vs buggy.py
-    Green -> Green : calculate score
+    Green -> Green : ast.parse() validation
+
+    alt track = tdd
+        Green -> Green : pytest vs correct.py
+        Green -> Green : pytest vs buggy.py
+    else track = bdd
+        Green -> Green : pytest-bdd vs correct.py
+        Green -> Green : pytest-bdd vs buggy.py
+    end
+
+    Green -> Green : fault detection scoring
+    Green -> Green : mutation testing (mutmut)
+    Green -> Green : composite score\n(0.60*mutation + 0.40*fault)
 end
 
-Green --> Client : {results.json}
+Green --> Client : TaskState.completed\nAgentBeatsOutput artifact
 deactivate Green
 
 @enduml

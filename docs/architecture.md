@@ -73,6 +73,10 @@ graph LR
     AG --> Models
 ```
 
+`RequestIDMiddleware` is registered on the ASGI app in `server.py`. It
+generates a UUID per incoming HTTP request, logs method/path/status/duration,
+and sets the `X-Request-ID` response header.
+
 ## Package Structure
 
 ```text
@@ -112,9 +116,14 @@ sequenceDiagram
         A->>M: generate_tests(spec, track)
         M->>PA: A2A request "tdd:spec" or "bdd:spec"
         PA-->>M: Test code artifact
-        M-->>A: Validated Python code
-        A->>A: Execute tests (correct.py)
-        A->>A: Execute tests (buggy.py)
+        M-->>A: Validated Python code (ast.parse)
+        alt track = tdd
+            A->>A: Execute tests via pytest (correct.py)
+            A->>A: Execute tests via pytest (buggy.py)
+        else track = bdd
+            A->>A: Execute tests via pytest-bdd (correct.py)
+            A->>A: Execute tests via pytest-bdd (buggy.py)
+        end
         A->>A: Fault detection scoring
         A->>A: Mutation testing (mutmut)
         A->>A: Composite score calculation
@@ -127,7 +136,7 @@ sequenceDiagram
 ## Scoring Model
 
 ```text
-composite_score = (w1 * mutation_score) + (w2 * fault_detection_rate)
+composite_score = (0.60 * mutation_score) + (0.40 * fault_detection_rate)
 ```
 
 Per task:
@@ -178,7 +187,7 @@ inter-agent communication.
 Generated tests run in sandboxed subprocesses:
 
 - Temporary directory per execution (cleaned up after)
-- Network access blocked via `bubblewrap` (bwrap) when available
+- Network access blocked via `bubblewrap` (bwrap) at OS level when available
 - Per-task timeout enforcement
 - Separate runs against `correct.py` and `buggy.py`
 
