@@ -42,6 +42,22 @@ class MutationResult(BaseModel):
     error: str | None = Field(None, description="Error message if mutation testing failed")
 
 
+class CompositeScore(BaseModel):
+    """Weighted composite score combining mutation and fault detection metrics.
+
+    Formula: score = (0.60 * mutation_score) + (0.40 * fault_detection_rate)
+    Immutable after creation (frozen=True).
+    """
+
+    model_config = {"frozen": True}
+
+    mutation_score: float = Field(0.0, ge=0.0, le=1.0, description="Mutation score in [0.0, 1.0]")
+    fault_detection_rate: float = Field(
+        0.0, ge=0.0, le=1.0, description="Fault detection rate in [0.0, 1.0]"
+    )
+    score: float = Field(0.0, ge=0.0, le=1.0, description="Weighted composite score in [0.0, 1.0]")
+
+
 # FIXME: class name triggers PytestCollectionWarning (Test* pattern) — rename or add collect_ignore
 class TestExecutionResult(BaseModel):
     """Result of test execution against an implementation.

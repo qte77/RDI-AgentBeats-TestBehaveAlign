@@ -12,7 +12,7 @@ import time
 from pathlib import Path
 from typing import Literal
 
-from green.models import MutationResult, Task, TestExecutionResult
+from green.models import CompositeScore, MutationResult, Task, TestExecutionResult
 from green.settings import Settings
 
 
@@ -448,3 +448,20 @@ def run_mutation_testing(
                 mutation_score=0.0,
                 error=str(e),
             )
+
+
+def calculate_composite_score(
+    mutation_score: float = 0.0,
+    fault_detection_rate: float = 0.0,
+) -> CompositeScore:
+    """Calculate weighted composite score from mutation and fault detection metrics.
+
+    Formula: score = (0.60 * mutation_score) + (0.40 * fault_detection_rate)
+    Missing inputs default to 0.0. Final score is rounded to 2 decimal places.
+    """
+    score = round((0.60 * mutation_score) + (0.40 * fault_detection_rate), 2)
+    return CompositeScore(
+        mutation_score=mutation_score,
+        fault_detection_rate=fault_detection_rate,
+        score=score,
+    )
