@@ -58,6 +58,88 @@ class CompositeScore(BaseModel):
     score: float = Field(0.0, ge=0.0, le=1.0, description="Weighted composite score in [0.0, 1.0]")
 
 
+class TaskDetail(BaseModel):
+    """Per-task evaluation result for AgentBeats output.
+
+    Captures task-level scores and test execution outcomes.
+    Immutable after creation (frozen=True).
+    """
+
+    model_config = {"frozen": True}
+
+    task_id: str = Field(..., description="Task identifier")
+    mutation_score: float = Field(0.0, ge=0.0, le=1.0, description="Mutation score in [0.0, 1.0]")
+    fault_detection_rate: float = Field(
+        0.0, ge=0.0, le=1.0, description="Fault detection rate in [0.0, 1.0]"
+    )
+    composite_score: float = Field(
+        0.0, ge=0.0, le=1.0, description="Composite score in [0.0, 1.0]"
+    )
+    passed_correct: bool = Field(..., description="True if tests passed against correct impl")
+    failed_buggy: bool = Field(..., description="True if tests failed against buggy impl")
+
+
+class TaskRewards(BaseModel):
+    """Aggregated task reward metrics for AgentBeats output.
+
+    Captures mutation score, fault detection rate, track, and task count.
+    Immutable after creation (frozen=True).
+    """
+
+    model_config = {"frozen": True}
+
+    mutation_score: float = Field(0.0, ge=0.0, le=1.0, description="Mutation score in [0.0, 1.0]")
+    fault_detection_rate: float = Field(
+        0.0, ge=0.0, le=1.0, description="Fault detection rate in [0.0, 1.0]"
+    )
+    track: Literal["tdd", "bdd"] = Field(..., description="Evaluation track: tdd or bdd")
+    task_count: int = Field(..., ge=0, description="Number of tasks evaluated")
+
+
+class ResultDetail(BaseModel):
+    """Detail section of an AgentBeats eval result.
+
+    Contains per-task breakdown.
+    Immutable after creation (frozen=True).
+    """
+
+    model_config = {"frozen": True}
+
+    task_details: list[TaskDetail] = Field(
+        default_factory=list, description="Per-task evaluation details"
+    )
+
+
+class EvalResult(BaseModel):
+    """Single evaluation result entry for AgentBeats output.
+
+    Contains composite score, pass rate, task rewards, and detail.
+    Immutable after creation (frozen=True).
+    """
+
+    model_config = {"frozen": True}
+
+    score: float = Field(0.0, ge=0.0, le=1.0, description="Composite score in [0.0, 1.0]")
+    pass_rate: float = Field(
+        0.0, ge=0.0, le=1.0, description="Fraction of tasks passing correct impl in [0.0, 1.0]"
+    )
+    task_rewards: TaskRewards = Field(..., description="Aggregated task reward metrics")
+    detail: ResultDetail = Field(..., description="Per-task evaluation details")
+
+
+class AgentBeatsOutput(BaseModel):
+    """Top-level AgentBeats results.json envelope.
+
+    Contains participant info and list of eval results.
+    Immutable after creation (frozen=True).
+    """
+
+    model_config = {"frozen": True}
+
+    participants: dict[str, str] = Field(..., description="Participant mapping: agent -> uuid")
+    results: list[EvalResult] = Field(..., description="List of evaluation results")
+
+
 # FIXME: class name triggers PytestCollectionWarning (Test* pattern) — rename or add collect_ignore
 class TestExecutionResult(BaseModel):
     """Result of test execution against an implementation.

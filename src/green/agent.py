@@ -12,7 +12,17 @@ import time
 from pathlib import Path
 from typing import Literal
 
-from green.models import CompositeScore, MutationResult, Task, TestExecutionResult
+from green.models import (
+    AgentBeatsOutput,
+    CompositeScore,
+    EvalResult,
+    MutationResult,
+    ResultDetail,
+    Task,
+    TaskDetail,
+    TaskRewards,
+    TestExecutionResult,
+)
 from green.settings import Settings
 
 
@@ -465,3 +475,46 @@ def calculate_composite_score(
         fault_detection_rate=fault_detection_rate,
         score=score,
     )
+
+
+def generate_agentbeats_results(
+    participant_id: str,
+    task_details: list[TaskDetail],
+    composite: CompositeScore,
+    pass_rate: float,
+    track: Literal["tdd", "bdd"],
+) -> AgentBeatsOutput:
+    """Build AgentBeatsOutput from computed scores and task details.
+
+    Assembles the full AgentBeats results.json envelope including
+    participant info, aggregated task rewards, and per-task details.
+    """
+    rewards = TaskRewards(
+        mutation_score=composite.mutation_score,
+        fault_detection_rate=composite.fault_detection_rate,
+        track=track,
+        task_count=len(task_details),
+    )
+    detail = ResultDetail(task_details=task_details)
+    result = EvalResult(
+        score=composite.score,
+        pass_rate=pass_rate,
+        task_rewards=rewards,
+        detail=detail,
+    )
+    return AgentBeatsOutput(
+        participants={"agent": participant_id},
+        results=[result],
+    )
+
+
+def write_results_json(output: AgentBeatsOutput, output_dir: Path) -> Path:
+    """Serialize AgentBeatsOutput to output/results.json.
+
+    Creates the output directory if it does not exist.
+    Returns the path to the written file.
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+    result_path = output_dir / "results.json"
+    result_path.write_text(output.model_dump_json())
+    return result_path
