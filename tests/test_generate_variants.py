@@ -146,3 +146,39 @@ class TestGenerateVariants:
         assert task_id in BUG_PATTERNS or any("task_001" in key for key in BUG_PATTERNS.keys()), (
             f"BUG_PATTERNS should include pattern for {task_id}"
         )
+
+    @pytest.mark.parametrize(
+        "task_id",
+        [
+            "task_001_has_close_elements",
+            "task_002_separate_paren_groups",
+            "task_003_truncate_number",
+            "task_004_below_zero",
+            "task_005_intersperse",
+        ],
+    )
+    def test_bug_patterns_covers_all_tasks(self, task_id: str) -> None:
+        """BUG_PATTERNS includes valid patterns for all 5 tasks (001-005)."""
+        from green.data_prep.generate_variants import BUG_PATTERNS
+
+        assert task_id in BUG_PATTERNS, f"BUG_PATTERNS should include pattern for {task_id}"
+        assert "old" in BUG_PATTERNS[task_id], f"Pattern for {task_id} should have 'old' key"
+        assert "new" in BUG_PATTERNS[task_id], f"Pattern for {task_id} should have 'new' key"
+
+    def test_generate_buggy_raises_value_error_when_pattern_not_found(
+        self, tmp_path: Path
+    ) -> None:
+        """generate_buggy raises ValueError when bug pattern is absent from correct.py."""
+        from green.data_prep.generate_variants import generate_buggy
+
+        # Task name matches BUG_PATTERNS key but correct.py lacks the expected old pattern
+        task_dir = tmp_path / "task_001_has_close_elements"
+        impl_dir = task_dir / "implementation"
+        impl_dir.mkdir(parents=True, exist_ok=True)
+
+        # Write correct.py WITHOUT "if idx != idx2:" so replacement is a no-op
+        correct_content = "def has_close_elements(numbers, threshold):\n    return False\n"
+        (impl_dir / "correct.py").write_text(correct_content)
+
+        with pytest.raises(ValueError, match="Bug injection failed"):
+            generate_buggy(task_dir)

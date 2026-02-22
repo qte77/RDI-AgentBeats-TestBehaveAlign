@@ -159,3 +159,55 @@ class TestDownloadEvalPlus:
         # Verify they are numbered correctly
         task_numbers = sorted([int(d.name.split("_")[1]) for d in task_dirs])
         assert task_numbers == [1, 2, 3, 4, 5], "Tasks should be numbered 001-005"
+
+    def test_import_error_is_raised_when_evalplus_missing(
+        self, temp_data_dir: Path
+    ) -> None:
+        """download_tasks raises ImportError when evalplus is not installed."""
+        from unittest.mock import patch
+
+        from green.data_prep.download_evalplus import download_tasks
+
+        with patch.dict("sys.modules", {"evalplus": None, "evalplus.data": None}):
+            with pytest.raises(ImportError):
+                download_tasks(output_dir=temp_data_dir, task_range=(0, 1))
+
+    def test_import_error_logs_error_messages(
+        self, temp_data_dir: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """download_tasks logs error messages when evalplus import fails."""
+        import logging
+        from unittest.mock import patch
+
+        from green.data_prep.download_evalplus import download_tasks
+
+        caplog.set_level(logging.ERROR)
+
+        with patch.dict("sys.modules", {"evalplus": None, "evalplus.data": None}):
+            with pytest.raises(ImportError):
+                download_tasks(output_dir=temp_data_dir, task_range=(0, 1))
+
+        assert any("Failed to import evalplus" in m for m in caplog.messages), (
+            "Should log 'Failed to import evalplus' error"
+        )
+        assert any("pip install evalplus" in m for m in caplog.messages), (
+            "Should log install instructions"
+        )
+
+    def test_download_logs_message_content(
+        self, temp_data_dir: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Download logs specific message content for progress and completion."""
+        import logging
+
+        from green.data_prep.download_evalplus import download_tasks
+
+        caplog.set_level(logging.INFO)
+        download_tasks(output_dir=temp_data_dir, task_range=(0, 2))
+
+        assert any("Downloading HumanEval tasks" in m for m in caplog.messages), (
+            "Should log 'Downloading HumanEval tasks' start message"
+        )
+        assert any("Successfully downloaded" in m for m in caplog.messages), (
+            "Should log 'Successfully downloaded' completion message"
+        )
