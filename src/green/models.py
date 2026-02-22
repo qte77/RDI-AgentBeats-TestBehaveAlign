@@ -72,9 +72,7 @@ class TaskDetail(BaseModel):
     fault_detection_rate: float = Field(
         0.0, ge=0.0, le=1.0, description="Fault detection rate in [0.0, 1.0]"
     )
-    composite_score: float = Field(
-        0.0, ge=0.0, le=1.0, description="Composite score in [0.0, 1.0]"
-    )
+    composite_score: float = Field(0.0, ge=0.0, le=1.0, description="Composite score in [0.0, 1.0]")
     passed_correct: bool = Field(..., description="True if tests passed against correct impl")
     failed_buggy: bool = Field(..., description="True if tests failed against buggy impl")
 
