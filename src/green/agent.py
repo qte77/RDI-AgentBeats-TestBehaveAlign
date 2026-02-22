@@ -128,7 +128,7 @@ def load_task(task_dir: Path, track: Literal["tdd", "bdd"]) -> Task:
 
 
 def _execute_test_in_isolation(
-    test_code: str, implementation: str, implementation_filename: str, track: Literal["tdd", "bdd"]
+    test_code: str, implementation: str, implementation_filename: str
 ) -> TestExecutionResult:
     """Execute tests against an implementation in isolated environment.
 
@@ -140,7 +140,6 @@ def _execute_test_in_isolation(
         test_code: Generated test code to execute
         implementation: Implementation code to test against
         implementation_filename: Name of implementation file (e.g., "correct.py" or "buggy.py")
-        track: Evaluation track ("tdd" or "bdd")
 
     Returns:
         TestExecutionResult with exit code, stdout, stderr, execution time, and pass/fail status
@@ -215,7 +214,6 @@ def _execute_test_in_isolation(
             passed=(exit_code == 0),
             failure_type=failure_type,
         )
-        # Temp directory automatically cleaned up by context manager
 
 
 def execute_test_against_correct(
@@ -234,7 +232,7 @@ def execute_test_against_correct(
     Returns:
         TestExecutionResult with exit code, stdout, stderr, execution time, and pass/fail status
     """
-    return _execute_test_in_isolation(test_code, correct_implementation, "correct.py", track)
+    return _execute_test_in_isolation(test_code, correct_implementation, "correct.py")
 
 
 def execute_test_against_buggy(
@@ -259,7 +257,7 @@ def execute_test_against_buggy(
         TestExecutionResult with exit code, stdout, stderr, execution time, and pass/fail status.
         Assertion failures in stdout/stderr indicate bug detection.
     """
-    return _execute_test_in_isolation(test_code, buggy_implementation, "buggy.py", track)
+    return _execute_test_in_isolation(test_code, buggy_implementation, "buggy.py")
 
 
 def calculate_fault_detection_score(

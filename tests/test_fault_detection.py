@@ -223,3 +223,136 @@ class TestFaultDetectionAggregation:
         average = aggregate_fault_detection_scores(scores)
 
         assert average == 0.75
+
+
+class TestFaultDetectionSnapshots:
+    """Snapshot-based tests for fault detection scoring."""
+
+    def test_perfect_detection_snapshot(
+        self, passed_correct_result: TestExecutionResult, failed_buggy_result: TestExecutionResult
+    ) -> None:
+        """Snapshot: perfect detection returns 1.0."""
+        from inline_snapshot import snapshot
+
+        from green.agent import calculate_fault_detection_score
+
+        score = calculate_fault_detection_score(
+            correct_result=passed_correct_result, buggy_result=failed_buggy_result
+        )
+        assert score == snapshot(1.0)
+
+    def test_missed_bug_snapshot(
+        self, passed_correct_result: TestExecutionResult, passed_buggy_result: TestExecutionResult
+    ) -> None:
+        """Snapshot: missed bug returns 0.0."""
+        from inline_snapshot import snapshot
+
+        from green.agent import calculate_fault_detection_score
+
+        score = calculate_fault_detection_score(
+            correct_result=passed_correct_result, buggy_result=passed_buggy_result
+        )
+        assert score == snapshot(0.0)
+
+    def test_broken_tests_snapshot(
+        self, failed_correct_result: TestExecutionResult, failed_buggy_result: TestExecutionResult
+    ) -> None:
+        """Snapshot: broken tests (failed correct) returns 0.0."""
+        from inline_snapshot import snapshot
+
+        from green.agent import calculate_fault_detection_score
+
+        score = calculate_fault_detection_score(
+            correct_result=failed_correct_result, buggy_result=failed_buggy_result
+        )
+        assert score == snapshot(0.0)
+
+    def test_aggregate_snapshot(self) -> None:
+        """Snapshot: aggregation of mixed scores."""
+        from inline_snapshot import snapshot
+
+        from green.agent import aggregate_fault_detection_scores
+
+        assert aggregate_fault_detection_scores([1.0, 0.0, 1.0]) == snapshot(0.6666666666666666)
+        assert aggregate_fault_detection_scores([]) == snapshot(0.0)
+
+
+class TestFaultDetectionProperties:
+    """Property-based tests for fault detection scoring."""
+
+    def test_score_always_binary(self) -> None:
+        """Fault detection score is always exactly 0.0 or 1.0."""
+        from hypothesis import given, settings
+        from hypothesis import strategies as st
+
+        from green.agent import calculate_fault_detection_score
+
+        result_strategy = st.builds(
+            TestExecutionResult,
+            exit_code=st.integers(min_value=0, max_value=4),
+            stdout=st.just(""),
+            stderr=st.just(""),
+            execution_time=st.floats(min_value=0.0, max_value=10.0),
+            passed=st.booleans(),
+            failure_type=st.sampled_from(["none", "assertion", "infrastructure", "timeout"]),
+        )
+
+        @given(correct=result_strategy, buggy=result_strategy)
+        @settings(max_examples=50)
+        def check(correct: TestExecutionResult, buggy: TestExecutionResult) -> None:
+            score = calculate_fault_detection_score(correct_result=correct, buggy_result=buggy)
+            assert score in {0.0, 1.0}
+
+        check()
+
+    def test_aggregate_in_valid_range(self) -> None:
+        """Aggregated score is always in [0.0, 1.0] for valid inputs."""
+        from hypothesis import given, settings
+        from hypothesis import strategies as st
+
+        from green.agent import aggregate_fault_detection_scores
+
+        @given(scores=st.lists(st.sampled_from([0.0, 1.0]), max_size=20))
+        @settings(max_examples=50)
+        def check(scores: list[float]) -> None:
+            result = aggregate_fault_detection_scores(scores)
+            assert 0.0 <= result <= 1.0
+
+        check()
+
+    def test_none_results_always_zero(self) -> None:
+        """Any None input always produces 0.0."""
+        from hypothesis import given, settings
+        from hypothesis import strategies as st
+
+        from green.agent import calculate_fault_detection_score
+
+        result_or_none = st.one_of(
+            st.none(),
+            st.builds(
+                TestExecutionResult,
+                exit_code=st.integers(min_value=0, max_value=4),
+                stdout=st.just(""),
+                stderr=st.just(""),
+                execution_time=st.floats(min_value=0.0, max_value=10.0),
+                passed=st.booleans(),
+                failure_type=st.sampled_from(["none", "assertion", "infrastructure", "timeout"]),
+            ),
+        )
+
+        @given(correct=st.none(), buggy=result_or_none)
+        @settings(max_examples=20)
+        def check_none_correct(
+            correct: TestExecutionResult | None, buggy: TestExecutionResult | None
+        ) -> None:
+            assert calculate_fault_detection_score(correct_result=correct, buggy_result=buggy) == 0.0
+
+        @given(correct=result_or_none, buggy=st.none())
+        @settings(max_examples=20)
+        def check_none_buggy(
+            correct: TestExecutionResult | None, buggy: TestExecutionResult | None
+        ) -> None:
+            assert calculate_fault_detection_score(correct_result=correct, buggy_result=buggy) == 0.0
+
+        check_none_correct()
+        check_none_buggy()
