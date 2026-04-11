@@ -13,7 +13,7 @@ dependencies = [
     "pydantic>=2.12.5",
     "pydantic-settings>=2.13.1",
     # Green agent runtime: test execution and mutation testing
-    "pytest>=9.0.2",
+    "pytest>=9.0.3",
     "pytest-bdd>=8.1.0",
     "mutmut>=3.4.0",
 ]
