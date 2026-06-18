@@ -13,6 +13,7 @@ dependencies = [
     "pydantic>=2.12.5",
     "pydantic-settings>=2.13.1",
     # Green agent runtime: test execution and mutation testing
+    "scriv[toml]>=1.8",
     "pytest>=9.0.2",
     "pytest-bdd>=8.1.0",
     "mutmut>=3.4.0",
@@ -186,3 +187,11 @@ replace = """
 
 ## [{new_version}] - {now:%Y-%m-%d}
 """
+
+[tool.scriv]
+format = "md"
+fragment_directory = "changelog.d"
+categories = ["Added", "Changed", "Deprecated", "Removed", "Fixed", "Security"]
+md_header_level = "2"
+entry_title_template = "[{{ version }}] - {{ date.strftime('%Y-%m-%d') }}"
+md_html_anchors = false
